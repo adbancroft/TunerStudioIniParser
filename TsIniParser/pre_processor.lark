@@ -1,0 +1,55 @@
+%import common (WS_INLINE, NEWLINE, WS, CNAME)
+
+%ignore WS_INLINE
+%ignore COMMENT
+
+start:  _WS* (pp_conditional | _non_condtional_line)+
+
+// Pre-processor conditional.
+pp_conditional: if_part elif_part* else_part? _endif_line
+// Pre-processor conditional body. 
+//
+// Note - it's recursive (i.e. allows nested #if)
+ppif_body      : (pp_conditional | _non_condtional_line)*
+if_part        : _condition ppif_body
+_condition     : _if_line | _ifdef_line | _ifndef_line
+_if_line        : _PP_IF_TAG expression _WS*
+_PP_IF_TAG     : "#" WS_INLINE? "if"
+_ifdef_line     : _PP_IFDEF_TAG symbol _WS*
+_PP_IFDEF_TAG  : "#" WS_INLINE? "ifdef"
+_ifndef_line    : _PP_IFNDEF_TAG symbol _WS*
+_PP_IFNDEF_TAG : "#" WS_INLINE? "ifndef"
+elif_part      : _elif_line ppif_body
+_elif_line     : _ELIF_TAG expression _WS*
+_ELIF_TAG      : "#" WS_INLINE? "elif"
+?else_part      : _else_line ppif_body
+_else_line     : _ELSE_TAG _WS*
+_ELSE_TAG      : "#" WS_INLINE? "else" 
+_endif_line    : _ENDIF_TAG _WS*
+_ENDIF_TAG     : "#" WS_INLINE? "endif"
+set            : _SET_TAG CNAME _WS*
+_SET_TAG       : "#" WS_INLINE? "set"i
+unset          : _UNSET_TAG CNAME _WS*
+_UNSET_TAG     : "#" WS_INLINE? "unset"i 
+
+symbol         : CNAME
+!expression    : "!"? CNAME
+
+_non_condtional_line  : _passthrough_line | set | unset
+_passthrough_line     : LINE NEWLINE _WS*
+LINE                  : /(?!(?: |\t))/ (NON_CONDITIONAL_PPLINE | NON_PPLINE)
+NON_CONDITIONAL_PPLINE: /#(?: |\t)*(?:define|error)/ _STOP_MATCH /.+/
+NON_PPLINE        : (_UNQUOTED_STRING | _QUOTED_STRING)+
+// Various lookaheads that will stop regex parsing
+_CPP_COMMENT_STOP : /(?!(?: |\t)*\/\/)/   // C++ style comment (//), space prefixed
+_INI_COMMENT_STOP : /(?!(?: |\t)*;)/      // Ini comment (;), space prefixed
+_HASH_COMMENT_STOP: /(?!(?: |\t)*#)/      // Hash comment (#), space prefixed. NOTE: this has to be used carefully
+_NEWLINE_STOP     : /(?!(?: |\t)*\n)/     // Newline, space prefixed
+_STOP_MATCH       : _NEWLINE_STOP _HASH_COMMENT_STOP _CPP_COMMENT_STOP _INI_COMMENT_STOP
+_QUOTED_STRING    : /\".*?\"/
+_UNQUOTED_STRING  : _STOP_MATCH /[^\"]+?/
+
+_WS             : WS
+COMMENT        : /(;|\/\/)[^\n]*/ | PP_COMMENT
+// Needs the negative lookahead in order to be ignorable :-(
+PP_COMMENT     : /#( |\t)*(?!if|ifdef|else|elif|endif|define|set|unset|error)[^\n]+/

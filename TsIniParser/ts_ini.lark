@@ -1,0 +1,126 @@
+// Lark grammar definition for TunerStudio INI files
+//
+// This parser is less tolerant than TunerStudio:
+//   key-value pairs: the value must be comma delimited (TunerStudio tolerates spaces)
+//   there must be a blank line at the end
+//   Expression markers ("{", "}") and parentheses must be balanced
+//   All identifiers must be cnames (no spaces, quotes etc.)
+
+// We base a number of rules on elements of "C" language
+%import .ini_expression.conditional_expression -> c_expression
+%import .ini_expression.additive_expression -> math_expression
+%import .ini_expression.identifier
+%import .ini_expression (DECIMAL_INT_CONSTANT, BINARY_INT_CONSTANT, HEX_CONSTANT, FLOATING_CONSTANT)
+
+%import common (WS_INLINE, NEWLINE, LETTER, DIGIT, WS, ESCAPED_STRING, CNAME)
+%ignore WS_INLINE
+
+// ============================ Overall File Structure ============================
+
+start        : _pre_section_line* _section+
+_pre_section_line: kvp_line | _pp_line
+_section     : context_help_section | constants_section | generic_section | tableeditor_section
+
+// ============================ Sections  ============================
+
+// The key-value pairs in this section need special handling.
+// The values are just strings - but they can have embedded *unescaped* quotes
+// There is no way to parse these as part of normal KVP processing
+// Hence special handling
+context_help_section : "[SettingContextHelp]" _EOL _help_section_line*
+_help_section_line   : _pp_line | help_line 
+help_line            : help_line_key string_value _EOL
+help_line_key        : KEY
+string_value         : STRING_VALUE
+STRING_VALUE         : /\".*\"/
+
+// Entries in the Constants section can be grouped into pages 
+constants_section : "[Constants]" _EOL _constants_header_line+ page+
+_constants_header_line: kvp_line | _pp_line
+page              : _PAGE_TAG DECIMAL_INT_CONSTANT _EOL _page_line+
+_PAGE_TAG         : "page"i WS_INLINE? "=" 
+_page_line        : kvp_line | _pp_line | text_line
+
+// Entries in the TableEditor section can be grouped into tables
+tableeditor_section : "[TableEditor]" _EOL table+
+table               : _TABLE_TAG table_header _EOL _table_line+
+table_header        : table_id "," map3d_id "," title "," page_num ("," type_code_override)?
+table_id          : _identifier
+map3d_id          : _identifier
+title             : ESCAPED_STRING
+page_num          : DECIMAL_INT_CONSTANT
+_TABLE_TAG         : "table"i WS_INLINE? "=" 
+_table_line        : kvp_line | _pp_line
+
+// Any other section
+generic_section: "[" section_name "]" _EOL _section_line*
+_section_line  : kvp_line | defaultvalue_line | _pp_line | text_line
+section_name   : SECTION_NAME
+SECTION_NAME   : (LETTER | DIGIT) (LETTER | DIGIT | " ")* 
+
+// ============================ Lines ============================
+
+// Key/value pair line. I.e. " key = value "
+// General format of key-value pairs:
+// name = class,  type, offset, shape, units, scale, translate, lo, hi, digits
+kvp_line        : kvp_key _kvp_value _EOL
+kvp_key         : KEY
+_kvp_value      : kvp_scalar_value | kvp_bit_value | kvp_array_value | kvp_other_value
+kvp_scalar_value: "scalar"i "," _field_list
+kvp_bit_value   : "bits"i "," _field_list
+kvp_array_value : "array"i "," _field_list
+?kvp_other_value : _field_list
+
+// Lines beginning with #. Typiclly preprocessor directives
+_pp_line       : hashdef | error
+hashdef        :_HASHDEF_TAG identifier "=" defined_value _EOL
+_HASHDEF_TAG   : "#" WS_INLINE? "define"i 
+defined_value  : ANY_VALUE
+error          : _HAS_ERROR_TAG ANY_VALUE  _EOL
+_HAS_ERROR_TAG : "#" WS_INLINE? "error"i 
+
+defaultvalue_line:  "defaultValue"i "=" identifier "," default_value _EOL
+default_value    : ANY_VALUE
+
+text_line      : _TEXTLINE_TAG string_value _EOL
+_TEXTLINE_TAG  : "text"i WS_INLINE? "="
+
+// ============================ Comma Delimited Field List  ============================
+
+_field_list : (_field_list ",")? _field?
+_field      :  type_string 
+             | type_number 
+             | type_expression 
+             | type_variable 
+             | type_other 
+             | type_data_type 
+             | type_int_kvp 
+             | array_size_1d
+             | array_size_2d 
+             | type_bit_offset 
+             | type_code_override
+type_variable  : "$" CNAME
+// type_identifier: CNAME
+array_size_1d   : "[" math_expression "]"
+array_size_2d   : "[" math_expression "x" math_expression "]"
+type_bit_offset : "[" math_expression ":" math_expression "]"
+type_data_type  : DATA_TYPE
+DATA_TYPE       : ("S" | "U" | "F") DECIMAL_INT_CONSTANT
+type_string     : ESCAPED_STRING
+type_expression  : "{" c_expression? "}"
+type_code_override: "%code_override"i "=" (_name_override | type_variable)
+_name_override   : _NAME_TAG c_expression
+_NAME_TAG        : "name"i WS_INLINE? "="
+type_number     : NUMBER_FIELD
+NUMBER_FIELD.-1 : FLOATING_CONSTANT | DECIMAL_INT_CONSTANT | BINARY_INT_CONSTANT | HEX_CONSTANT
+type_int_kvp    : TYPE_INT_KVP
+TYPE_INT_KVP    : DECIMAL_INT_CONSTANT WS_INLINE? "=" WS_INLINE? ESCAPED_STRING
+type_other        : ANY_FIELD_VALUE
+ANY_FIELD_VALUE.-1: /[^,\n]+/
+
+// ============================ General  ============================
+
+ANY_VALUE      : /[^\n]+/
+KEY.-1         : (CNAME | ESCAPED_STRING) WS_INLINE? "="
+_EOL           : NEWLINE
+_identifier    : identifier

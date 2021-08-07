@@ -1,0 +1,95 @@
+// A TS INI file expression statement as a lark grammar.
+//
+// Not fully tested
+//
+// Since TS is a Java app, loosley based on https://cs.au.dk/~amoeller/RegAut/JavaBNF.html
+
+// Start point
+?conditional_expression : logical_expression | ternary_expression
+
+?primary_expression : identifier
+	| _constant
+	| string_literal
+	| _nested_expression
+_nested_expression: "(" conditional_expression ")"
+
+?postfix_expression : primary_expression
+	| array_index_expression
+	| fncall_index_expression
+	| struct_access_expression
+	| postfix_inc_expression
+	| postfix_dec_expression
+
+array_index_expression: postfix_expression "[" conditional_expression "]"
+fncall_index_expression: postfix_expression "(" argument_expression_list? ")"
+struct_access_expression: postfix_expression "." identifier
+postfix_inc_expression: postfix_expression "++"
+postfix_dec_expression: postfix_expression "--"
+
+?argument_expression_list : (argument_expression_list ",")? conditional_expression
+	
+_unary_expression : postfix_expression
+	| prefix_inc_expression
+	| prefix_dec_expression
+	| unary_cast_expression
+
+prefix_inc_expression: "++" _unary_expression
+prefix_dec_expression: "--" _unary_expression
+?unary_cast_expression: _unary_op cast_expression
+
+_unary_op : "&"
+	| "*"
+	| "+"
+	| "-"
+	| "~"
+	| "!"
+	
+?cast_expression : _unary_expression
+	| "(" TYPE_NAME ")" cast_expression
+	
+?multiplicative_expression : (multiplicative_expression _multiply_op)? cast_expression
+_multiply_op: "*" | "/" | "%"
+
+?additive_expression : (additive_expression _additive_op)? multiplicative_expression
+_additive_op: "+" | "-"
+
+?shift_expression : (shift_expression _shift_op)? additive_expression
+_shift_op: "<<" | ">>"
+
+?relational_expression : (relational_expression _relational_op)? shift_expression
+_relational_op: "<" | ">" | "<=" | ">="
+
+?equality_expression : (equality_expression _equality_op)? relational_expression
+_equality_op: "==" | "!="
+
+?bit_expression: (bit_expression _bit_op)? equality_expression
+_bit_op: "&" | "|" | "^"
+
+?logical_expression : (logical_expression _logical_op)? bit_expression
+_logical_op: "&&" | "||"
+
+ternary_expression: logical_expression "?" conditional_expression ":" conditional_expression
+	
+_constant : _integer_constant
+             | char_constant
+             | floating_constant
+
+identifier           : CNAME
+string_literal       : ESCAPED_STRING
+_integer_constant    : binary_constant | decimal_int_constant | hex_constant
+decimal_int_constant : DECIMAL_INT_CONSTANT
+DECIMAL_INT_CONSTANT : /(?:\+|-)?\d+/
+binary_constant      : BINARY_INT_CONSTANT
+BINARY_INT_CONSTANT.2: /0b(?:0|1)+/
+hex_constant         : HEX_CONSTANT
+HEX_CONSTANT.2       : /0x[0-9a-fA-F]+/
+char_constant        : /'[^'\\\n]'/ // This is too simplistic. Need to handle escape sequences.
+floating_constant    : FLOATING_CONSTANT
+FLOATING_CONSTANT    : (FLOAT | SIGNED_FLOAT) "f"?
+
+TYPE_NAME : CNAME
+
+%import common (CNAME, ESCAPED_STRING, WS_INLINE, SIGNED_FLOAT, LETTER, WS, FLOAT)
+%import common.INT -> UNSIGNED_LITERAL
+
+%ignore WS
