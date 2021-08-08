@@ -10,8 +10,7 @@ THIS_DIR = Path(__file__).parent
 
 def parse_file(filepath, parser):
     with open(filepath, 'r') as file:  
-        ini = file.read()
-    return parser.parse(ini)
+        return parser.parse(file)
 
 class test_all_files(unittest.TestCase):
 
@@ -38,7 +37,6 @@ class test_all_files(unittest.TestCase):
 
         for ini_file in ini_files:
             log.info(f"Parsing {ini_file}")
-            # print(f"Parsing {ini_file}")
             parse_file(ini_file, parser)
 
 if __name__ == '__main__':

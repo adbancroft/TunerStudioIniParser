@@ -1,6 +1,7 @@
 from lark import Lark, Transformer, Tree
 from more_itertools import first_true
 from pathlib import Path
+from TsIniParser.TextIoLexer import TextIoLexer
 
 _GRAMMAR = Path(__file__).parent / 'pre_processor.lark'
 _GRAMMAR_CACHE = _GRAMMAR.with_suffix('.lark.cache')
@@ -80,6 +81,7 @@ class TsIniPreProcessor:
     def __init__(self):
         self._symbol_table = {}
         self.processor = Lark.open(_GRAMMAR, parser='lalr', debug = True, transformer = TsIniPreProcessor.pp_transformer(self._symbol_table), cache = str(_GRAMMAR_CACHE))
+        self.processor.parser.lexer = TextIoLexer(self.processor.parser.lexer)        
 
     def define(self, symbol:str, value):
         """Define a preprocessor symbol to control preprocessing condtionals
