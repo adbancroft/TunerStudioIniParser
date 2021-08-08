@@ -1,5 +1,5 @@
-from TsIniParser.TunerStudioIniPreProcessor import TsIniPreProcessor
-from TsIniParser.TreeLexer import TreeLexerAdapter
+from .TunerStudioIniPreProcessor import TsIniPreProcessor
+from .TreeLexer import TreeLexerAdapter
 from lark import Lark, Tree
 from pathlib import Path
 
@@ -7,7 +7,14 @@ _GRAMMAR = Path(__file__).parent / 'ts_ini.lark'
 _GRAMMAR_CACHE = _GRAMMAR.with_suffix('.lark.cache')
 
 class TsIniParser:
-    """TunerStudio INI file parser"""
+    """TunerStudio INI file parser
+    
+    This parser is slightly less tolerant than TunerStudio:
+     key-value pairs: the values must be comma delimited (TunerStudio tolerates spaces)
+     there must be a blank line at the end
+     Expression markers ("{", "}") and parentheses must be balanced
+     All identifiers must be cnames (no spaces, quotes etc.)
+    """
 
     def __init__(self):
         self._pre_processor = TsIniPreProcessor()

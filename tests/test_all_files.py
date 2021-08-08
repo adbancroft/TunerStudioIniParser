@@ -1,6 +1,6 @@
 import unittest
 from logging import DEBUG, StreamHandler, getLogger
-from TsIniParser.TunerStudioIniParser import TsIniParser
+from TsIniParser import TsIniParser
 from pathlib import Path
 
 from lark import logger
