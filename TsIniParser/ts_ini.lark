@@ -39,7 +39,7 @@ _page_line        : kvp_line | _pp_line | text_line
 // Entries in the TableEditor section can be grouped into tables
 tableeditor_section : "[TableEditor]" _EOL table+
 table               : _TABLE_TAG table_header _EOL _table_line+
-table_header        : table_id "," map3d_id "," title "," page_num ("," type_code_override)?
+table_header        : table_id "," map3d_id "," title "," page_num ("," code_override)?
 table_id          : _identifier
 map3d_id          : _identifier
 title             : ESCAPED_STRING
@@ -92,25 +92,25 @@ message_format_line: "messageEnvelopeFormat" "=" ANY_VALUE _EOL
 // ============================ Comma Delimited Field List  ============================
 
 _field_list : (_field_list ",")? _field?
-_field      :  type_expression 
-             | type_variable 
+_field      :  inline_expression 
+             | variable_ref 
              | type_other 
-             | type_data_type 
+             | data_type 
              | array_size_1d
              | array_size_2d 
-             | type_bit_offset 
-             | type_code_override
+             | bit_size 
+             | code_override
              | type_kvp
              | conditional_expression
              | filter_field
-type_variable  : "$" CNAME
+variable_ref  : "$" CNAME
 array_size_1d   : "[" additive_expression "]"
 array_size_2d   : "[" additive_expression "x" additive_expression "]"
-type_bit_offset : "[" additive_expression ":" additive_expression "]"
-type_data_type  : DATA_TYPE
+bit_size : "[" additive_expression ":" additive_expression "]"
+data_type  : DATA_TYPE
 DATA_TYPE       : ("S" | "U" | "F") DECIMAL_INT_CONSTANT
-type_expression  : "{" conditional_expression? "}"
-type_code_override: "%code_override"i "=" (_name_override | type_variable)
+inline_expression  : "{" conditional_expression? "}"
+code_override: "%code_override"i "=" (_name_override | variable_ref)
 _name_override   : _NAME_TAG conditional_expression
 _NAME_TAG        : "name"i WS_INLINE? "="
 type_kvp        : TYPE_KVP
