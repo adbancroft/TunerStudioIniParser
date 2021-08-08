@@ -33,5 +33,8 @@ class TsIniParser:
         
         self._pre_processor.define(symbol, value)
 
+    def on_error(self, e):
+        pass
+
     def parse(self, input, on_error=None) -> Tree:
-        return self._ts_parser.parse(self._pre_processor.pre_process(input, on_error=on_error), on_error=on_error)
+        return self._ts_parser.parse(self._pre_processor.pre_process(input, on_error=self.on_error), on_error=self.on_error)
