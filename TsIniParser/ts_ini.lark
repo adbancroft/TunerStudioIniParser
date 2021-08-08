@@ -19,7 +19,7 @@
 
 start        : _pre_section_line* _section+
 _pre_section_line: kvp_line | _pp_line
-_section     : context_help_section | constants_section | generic_section | tableeditor_section
+_section     : context_help_section | constants_section | generic_section | tableeditor_section | gaugeconfig_section
 
 // ============================ Sections  ============================
 
@@ -36,7 +36,7 @@ STRING_VALUE         : /\".*\"/
 
 // Entries in the Constants section can be grouped into pages 
 constants_section : "[Constants]" _EOL _constants_header_line+ page+
-_constants_header_line: kvp_line | _pp_line
+_constants_header_line: kvp_line | _pp_line | message_format_line
 page              : _PAGE_TAG DECIMAL_INT_CONSTANT _EOL _page_line+
 _PAGE_TAG         : "page"i WS_INLINE? "=" 
 _page_line        : kvp_line | _pp_line | text_line
@@ -52,9 +52,16 @@ page_num          : DECIMAL_INT_CONSTANT
 _TABLE_TAG         : "table"i WS_INLINE? "=" 
 _table_line        : kvp_line | _pp_line
 
+// Entries in the GaugeConfigurations section can be grouped into gauge categories
+gaugeconfig_section     : "[GaugeConfigurations]" _EOL _gaugeconfig_headerline* gauge_category*
+gauge_category          : _GAUGE_CATEGORY_TAG ANY_VALUE _EOL _gauge_category_line+
+_GAUGE_CATEGORY_TAG     : "gaugeCategory"i WS_INLINE? "=" 
+_gauge_category_line    : kvp_line | _pp_line
+_gaugeconfig_headerline : kvp_line | _pp_line
+
 // Any other section
 generic_section: "[" section_name "]" _EOL _section_line*
-_section_line  : kvp_line | defaultvalue_line | _pp_line | text_line
+_section_line  : kvp_line | defaultvalue_line | _pp_line | text_line | message_format_line
 section_name   : SECTION_NAME
 SECTION_NAME   : (LETTER | DIGIT) (LETTER | DIGIT | " ")* 
 
@@ -85,6 +92,8 @@ default_value    : ANY_VALUE
 text_line      : _TEXTLINE_TAG string_value _EOL
 _TEXTLINE_TAG  : "text"i WS_INLINE? "="
 
+message_format_line: "messageEnvelopeFormat" "=" ANY_VALUE _EOL
+
 // ============================ Comma Delimited Field List  ============================
 
 _field_list : (_field_list ",")? _field?
@@ -94,13 +103,14 @@ _field      :  type_string
              | type_variable 
              | type_other 
              | type_data_type 
-             | type_int_kvp 
              | array_size_1d
              | array_size_2d 
              | type_bit_offset 
              | type_code_override
+             | type_kvp
+             | c_expression
+             | filter_field
 type_variable  : "$" CNAME
-// type_identifier: CNAME
 array_size_1d   : "[" math_expression "]"
 array_size_2d   : "[" math_expression "x" math_expression "]"
 type_bit_offset : "[" math_expression ":" math_expression "]"
@@ -113,8 +123,10 @@ _name_override   : _NAME_TAG c_expression
 _NAME_TAG        : "name"i WS_INLINE? "="
 type_number     : NUMBER_FIELD
 NUMBER_FIELD.-1 : FLOATING_CONSTANT | DECIMAL_INT_CONSTANT | BINARY_INT_CONSTANT | HEX_CONSTANT
-type_int_kvp    : TYPE_INT_KVP
-TYPE_INT_KVP    : DECIMAL_INT_CONSTANT WS_INLINE? "=" WS_INLINE? ESCAPED_STRING
+type_kvp        : TYPE_KVP
+TYPE_KVP    : (DECIMAL_INT_CONSTANT | CNAME) WS_INLINE? "=" WS_INLINE? (ESCAPED_STRING | NUMBER_FIELD)
+filter_field       :_FILTER
+_FILTER           : /\s*&|=|<|>\s*(?=,)/
 type_other        : ANY_FIELD_VALUE
 ANY_FIELD_VALUE.-1: /[^,\n]+/
 
