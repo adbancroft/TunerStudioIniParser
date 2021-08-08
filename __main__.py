@@ -1,5 +1,9 @@
 import sys
 from TsIniParser import TsIniParser
+from logging import DEBUG
+from lark import logger
+
+logger.setLevel(DEBUG)
 
 if __name__ == '__main__':
     parser = TsIniParser()
