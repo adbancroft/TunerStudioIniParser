@@ -6,13 +6,8 @@
 //   Expression markers ("{", "}") and parentheses must be balanced
 //   All identifiers must be cnames (no spaces, quotes etc.)
 
-// We base a number of rules on elements of "C" language
-%import .ini_expression.conditional_expression -> c_expression
-%import .ini_expression.additive_expression -> math_expression
-%import .ini_expression.identifier
-%import .ini_expression (DECIMAL_INT_CONSTANT, BINARY_INT_CONSTANT, HEX_CONSTANT, FLOATING_CONSTANT)
+%import common (WS_INLINE, NEWLINE, LETTER, DIGIT, WS, ESCAPED_STRING, CNAME, SIGNED_FLOAT,  FLOAT)
 
-%import common (WS_INLINE, NEWLINE, LETTER, DIGIT, WS, ESCAPED_STRING, CNAME)
 %ignore WS_INLINE
 
 // ============================ Overall File Structure ============================
@@ -97,9 +92,7 @@ message_format_line: "messageEnvelopeFormat" "=" ANY_VALUE _EOL
 // ============================ Comma Delimited Field List  ============================
 
 _field_list : (_field_list ",")? _field?
-_field      :  type_string 
-             | type_number 
-             | type_expression 
+_field      :  type_expression 
              | type_variable 
              | type_other 
              | type_data_type 
@@ -108,27 +101,113 @@ _field      :  type_string
              | type_bit_offset 
              | type_code_override
              | type_kvp
-             | c_expression
+             | conditional_expression
              | filter_field
 type_variable  : "$" CNAME
-array_size_1d   : "[" math_expression "]"
-array_size_2d   : "[" math_expression "x" math_expression "]"
-type_bit_offset : "[" math_expression ":" math_expression "]"
+array_size_1d   : "[" additive_expression "]"
+array_size_2d   : "[" additive_expression "x" additive_expression "]"
+type_bit_offset : "[" additive_expression ":" additive_expression "]"
 type_data_type  : DATA_TYPE
 DATA_TYPE       : ("S" | "U" | "F") DECIMAL_INT_CONSTANT
-type_string     : ESCAPED_STRING
-type_expression  : "{" c_expression? "}"
+type_expression  : "{" conditional_expression? "}"
 type_code_override: "%code_override"i "=" (_name_override | type_variable)
-_name_override   : _NAME_TAG c_expression
+_name_override   : _NAME_TAG conditional_expression
 _NAME_TAG        : "name"i WS_INLINE? "="
-type_number     : NUMBER_FIELD
-NUMBER_FIELD.-1 : FLOATING_CONSTANT | DECIMAL_INT_CONSTANT | BINARY_INT_CONSTANT | HEX_CONSTANT
 type_kvp        : TYPE_KVP
 TYPE_KVP    : (DECIMAL_INT_CONSTANT | CNAME) WS_INLINE? "=" WS_INLINE? (ESCAPED_STRING | NUMBER_FIELD)
+NUMBER_FIELD.-1 : FLOATING_CONSTANT | DECIMAL_INT_CONSTANT | BINARY_INT_CONSTANT | HEX_CONSTANT
 filter_field       :_FILTER
 _FILTER           : /\s*&|=|<|>\s*(?=,)/
 type_other        : ANY_FIELD_VALUE
 ANY_FIELD_VALUE.-1: /[^,\n]+/
+
+// ============================ Expressions ===========================
+
+// A TS INI file expression statement as a lark grammar.
+//
+// Not fully tested
+//
+// Since TS is a Java app, loosley based on https://cs.au.dk/~amoeller/RegAut/JavaBNF.html
+
+// Start point
+?conditional_expression : logical_expression | ternary_expression
+
+?primary_expression : identifier
+	| _constant
+	| string_literal
+	| nested_expression
+nested_expression: "(" conditional_expression ")"
+
+_postfix_expression : primary_expression
+	| array_index_expression
+	| fncall_index_expression
+	| struct_access_expression
+	| postfix_inc_expression
+	| postfix_dec_expression
+
+array_index_expression: _postfix_expression "[" conditional_expression "]"
+fncall_index_expression: _postfix_expression "(" argument_expression_list? ")"
+struct_access_expression: _postfix_expression "." identifier
+postfix_inc_expression: _postfix_expression "++"
+postfix_dec_expression: _postfix_expression "--"
+
+?argument_expression_list : (argument_expression_list ",")? conditional_expression
+	
+_unary_expression : _postfix_expression
+	| prefix_inc_expression
+	| prefix_dec_expression
+	| unary_op_expression
+
+prefix_inc_expression: "++" _unary_expression
+prefix_dec_expression: "--" _unary_expression
+unary_op_expression: _unary_op _unary_expression
+
+!_unary_op : "&"
+	| "*"
+	| "+"
+	| "-"
+	| "~"
+	| "!"
+	
+?multiplicative_expression : (multiplicative_expression _multiply_op)? _unary_expression
+!_multiply_op: "*" | "/" | "%"
+
+?additive_expression : (additive_expression _additive_op)? multiplicative_expression
+!_additive_op: "+" | "-"
+
+?shift_expression : (shift_expression _shift_op)? additive_expression
+!_shift_op: "<<" | ">>"
+
+?relational_expression : (relational_expression _relational_op)? shift_expression
+!_relational_op: "<" | ">" | "<=" | ">="
+
+?equality_expression : (equality_expression _equality_op)? relational_expression
+!_equality_op: "==" | "!="
+
+?bit_expression: (bit_expression _bit_op)? equality_expression
+!_bit_op: "&" | "|" | "^"
+
+?logical_expression : (logical_expression _logical_op)? bit_expression
+!_logical_op: "&&" | "||"
+
+ternary_expression: logical_expression "?" conditional_expression ":" conditional_expression
+	
+_constant : _integer_constant
+             | char_constant
+             | floating_constant
+
+identifier           : CNAME
+string_literal       : ESCAPED_STRING
+_integer_constant    : binary_constant | decimal_int_constant | hex_constant
+decimal_int_constant : DECIMAL_INT_CONSTANT
+DECIMAL_INT_CONSTANT : /(?:\+|-)?\d+/
+binary_constant      : BINARY_INT_CONSTANT
+BINARY_INT_CONSTANT.2: /0b(?:0|1)+/
+hex_constant         : HEX_CONSTANT
+HEX_CONSTANT.2       : /0x[0-9a-fA-F]+/
+char_constant        : /'[^'\\\n]'/ // This is too simplistic. Need to handle escape sequences.
+floating_constant    : FLOATING_CONSTANT
+FLOATING_CONSTANT    : (FLOAT | SIGNED_FLOAT) "f"?
 
 // ============================ General  ============================
 
