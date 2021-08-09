@@ -9,7 +9,7 @@ logger.setLevel(DEBUG)
 THIS_DIR = Path(__file__).parent
 
 def parse_file(filepath, parser):
-    with open(filepath, 'r') as file:  
+    with open(filepath, 'r', encoding='latin-1') as file:  
         return parser.parse(file)
 
 class test_all_files(unittest.TestCase):
