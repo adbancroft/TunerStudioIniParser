@@ -1,6 +1,6 @@
 from .TunerStudioIniPreProcessor import TsIniPreProcessor
 from .TreeLexer import TreeLexerAdapter
-from lark import Lark, Tree
+from lark import Lark, Tree, Transformer
 from pathlib import Path
 
 _GRAMMAR = Path(__file__).parent / 'ts_ini.lark'
@@ -16,9 +16,24 @@ class TsIniParser:
      All identifiers must be cnames (no spaces, quotes etc.)
     """
 
+    class transform_terminals(Transformer):
+        """Process terminal tokens"""
+        def KEY(self, token):
+            return token.update(value=token.value.rstrip(' ='))
+        def NUMBER_FIELD(self, token):
+            return token.update(value=float(token.value))
+        def DECIMAL_INT_CONSTANT(self, token):
+            return token.update(value=int(token.value))        
+        def BINARY_INT_CONSTANT(self, token):
+            return token.update(value=int(token.value, 2))
+        def HEX_CONSTANT(self, token):
+            return token.update(value=int(token.value, 16))
+        def FLOATING_CONSTANT(self, token):
+            return token.update(value=float(token.value))   
+
     def __init__(self):
         self._pre_processor = TsIniPreProcessor()
-        self._ts_parser = Lark.open(_GRAMMAR, parser='lalr', debug = True, cache = str(_GRAMMAR_CACHE))
+        self._ts_parser = Lark.open(_GRAMMAR, parser='lalr', debug = True, cache = str(_GRAMMAR_CACHE), transformer = TsIniParser.transform_terminals())
         # Adapt the parser lexer to consume the preprocessor output (a Tree)
         self._ts_parser.parser.lexer = TreeLexerAdapter(self._ts_parser.parser.lexer)
 
