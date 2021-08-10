@@ -18,6 +18,7 @@ setup(name='TsIniParser',
       ],      
       license='LGPL',
       packages=['TsIniParser'],
+      package_data={'TsIniParser': ['*.lark']},
       install_requires=[
           'lark-parser',
           'more-itertools'
