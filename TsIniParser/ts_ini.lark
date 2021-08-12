@@ -212,6 +212,7 @@ FLOATING_CONSTANT    : (FLOAT | SIGNED_FLOAT) "f"?
 // ============================ General  ============================
 
 ANY_VALUE      : /[^\n]+/
-KEY.-1         : (CNAME | ESCAPED_STRING) WS_INLINE? "="
+KEY.-1         : (KEY_NAME | ESCAPED_STRING) WS_INLINE? "="
+KEY_NAME       : ("_"|LETTER) ("_"|"-"|LETTER|DIGIT)*
 _EOL           : NEWLINE
 _identifier    : identifier
