@@ -6,15 +6,21 @@
 //   Expression markers ("{", "}") and parentheses must be balanced
 //   All identifiers must be cnames (no spaces, quotes etc.)
 
-%import common (WS_INLINE, NEWLINE, LETTER, DIGIT, WS, ESCAPED_STRING, CNAME, SIGNED_FLOAT,  FLOAT)
+%import common (WS_INLINE, NEWLINE, LETTER, DIGIT, WS, ESCAPED_STRING, CNAME, FLOAT, INT)
 
 %ignore WS_INLINE
 
 // ============================ Overall File Structure ============================
 
-start        : _pre_section_line* _section+
+start            : _pre_section_line* _section+
 _pre_section_line: kvp_line | _pp_line
-_section     : context_help_section | constants_section | generic_section | tableeditor_section | gaugeconfig_section
+_section         : context_help_section 
+				| constants_section 
+				| generic_section 
+				| tableeditor_section 
+				| gaugeconfig_section 
+				| pcvariables_section
+				| curveeditor_section
 
 // ============================ Sections  ============================
 
@@ -32,31 +38,64 @@ STRING_VALUE         : /\".*\"/
 // Entries in the Constants section can be grouped into pages 
 constants_section : "[Constants]" _EOL _constants_header_line+ page+
 _constants_header_line: kvp_line | _pp_line | message_format_line
-page              : _PAGE_TAG DECIMAL_INT_CONSTANT _EOL _page_line+
+page              : _PAGE_TAG page_num _EOL _page_line+
 _PAGE_TAG         : "page"i WS_INLINE? "=" 
-_page_line        : kvp_line | _pp_line | text_line
+_page_line        : kvp_line | kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | _pp_line | text_line
+
+// Entries in here can form a unique dictionary
+pcvariables_section:  "[PcVariables]" _EOL _section_line*
 
 // Entries in the TableEditor section can be grouped into tables
 tableeditor_section : "[TableEditor]" _EOL table+
 table               : _TABLE_TAG table_header _EOL _table_line+
-table_header        : table_id "," map3d_id "," title "," page_num ("," code_override)?
-table_id          : _identifier
-map3d_id          : _identifier
-title             : ESCAPED_STRING
-page_num          : DECIMAL_INT_CONSTANT
-_TABLE_TAG         : "table"i WS_INLINE? "=" 
-_table_line        : kvp_line | _pp_line
+_TABLE_TAG          : "table"i WS_INLINE? "=" 
+	table_header      : table_id "," map3d_id "," title "," page_num ("," unknown_values)?
+		table_id          : _identifier
+		map3d_id          : _identifier
+		title             : string_literal
+
+	_table_line       : kvp_line | _pp_line | grid_height | grid_orient | zbins | xbins | ybins | help_topic | xy_labels | updown_labels
+	grid_height       : "gridHeight"i "=" number_field _EOL
+	grid_orient       : "gridOrient"i "=" number_field "," number_field "," number_field _EOL
+	xy_labels         : "xyLabels" "=" _label_list _EOL
+	updown_labels     : "upDownLabel" "=" _label_list _EOL
+	zbins             : "zbins"i "=" axis_bin _EOL
 
 // Entries in the GaugeConfigurations section can be grouped into gauge categories
 gaugeconfig_section     : "[GaugeConfigurations]" _EOL _gaugeconfig_headerline* gauge_category*
 gauge_category          : _GAUGE_CATEGORY_TAG ANY_VALUE _EOL _gauge_category_line+
-_GAUGE_CATEGORY_TAG     : "gaugeCategory"i WS_INLINE? "=" 
-_gauge_category_line    : kvp_line | _pp_line
-_gaugeconfig_headerline : kvp_line | _pp_line
+	_GAUGE_CATEGORY_TAG     : "gaugeCategory"i WS_INLINE? "=" 
+	_gauge_category_line    : kvp_line | _pp_line
+	_gaugeconfig_headerline : kvp_line | _pp_line
+
+// Curve section can be grouped into curves & their properties
+curveeditor_section : "[CurveEditor]" _EOL  curve+
+curve               : "curve"i "="  _curve_header _EOL _curve_line+
+	_curve_header   : curve_id "," name ("," page_num)?
+		curve_id        : identifier
+		name            : string_literal
+
+	_curve_line  : kvp_line | _pp_line | xbins | ybins | xaxis_limits | yaxis_limits | columnlabels | gauge | size | line_label
+	xaxis_limits : "xaxis"i "=" axis_limits _EOL
+	yaxis_limits : "yaxis"i "=" axis_limits _EOL
+	columnlabels : "columnlabel"i "=" _label_list _EOL
+	gauge        : GAUGE_TAG identifier _EOL
+		GAUGE_TAG    : "gauge"i WS_INLINE? "="
+	size         : "size"i "=" dim1 "," dim2 _EOL
+		dim1         : number_field
+		dim2         : number_field
+	line_label   : "lineLabel"i "=" string_literal _EOL
+
+	axis_limits  : min "," max "," step
+		min          : number_field | inline_expression | variable_ref
+		max          : number_field | inline_expression | variable_ref
+		step         : number_field | inline_expression | variable_ref
+	_label_list  : (_label_list ",")? label
+		label        : string_literal | inline_expression | variable_ref
 
 // Any other section
 generic_section: "[" section_name "]" _EOL _section_line*
-_section_line  : kvp_line | defaultvalue_line | _pp_line | text_line | message_format_line
+_section_line  : help_topic | kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | kvp_line | defaultvalue_line | _pp_line | text_line | message_format_line | gauge | size
 section_name   : SECTION_NAME
 SECTION_NAME   : (LETTER | DIGIT) (LETTER | DIGIT | " ")* 
 
@@ -65,61 +104,114 @@ SECTION_NAME   : (LETTER | DIGIT) (LETTER | DIGIT | " ")*
 // Key/value pair line. I.e. " key = value "
 // General format of key-value pairs:
 // name = class,  type, offset, shape, units, scale, translate, lo, hi, digits
-kvp_line        : kvp_key _kvp_value _EOL
-kvp_key         : KEY
-_kvp_value      : kvp_scalar_value | kvp_bit_value | kvp_array_value | kvp_other_value
-kvp_scalar_value: "scalar"i "," _field_list
-kvp_bit_value   : "bits"i "," _field_list
-kvp_array_value : "array"i "," _field_list
-?kvp_other_value : _field_list
+kvp_line        : kvp_key _field_list _EOL
+
+kvp_scalar_line : kvp_scalar_name "," data_type ("," offset)? ("," _variable_parameters)? _EOL
+kvp_scalar_name : KVP_SCALAR_TAG -> name
+KVP_SCALAR_TAG  : KEY WS_INLINE? "scalar"i
+
+kvp_bits_line : kvp_bits_name "," data_type ("," offset)? "," bit_size ("," unknown_values)? _EOL
+kvp_bits_name : KVP_BITS_TAG -> name
+KVP_BITS_TAG  : KEY WS_INLINE? "bits"i
+
+kvp_array_line : kvp_array_name "," data_type ("," offset)? "," (dim1d|dim2d) ("," _variable_parameters)? _EOL
+kvp_array_name : KVP_ARRAY_TAG -> name
+KVP_ARRAY_TAG  : KEY WS_INLINE? "array"i
+
+kvp_string_line : kvp_string_name "," encoding ("," offset)? "," length _EOL
+kvp_string_name : KVP_STRING_TAG -> name
+KVP_STRING_TAG  : KEY WS_INLINE? "string"i
+
+	_variable_parameters: units
+				| units "," (scale | non_numeric_field_list)
+				| units "," scale "," (translate | non_numeric_field_list)
+				| units "," scale "," translate "," (low | non_numeric_field_list)
+				| units "," scale "," translate "," low "," (high | non_numeric_field_list)
+				| units "," scale "," translate "," low "," high "," digits ("," unknown_values)?
+	units            : inline_expression | variable_ref | string_literal
+	scale: number_field | inline_expression | variable_ref
+	translate : number_field | inline_expression | variable_ref
+	low : number_field | inline_expression | variable_ref
+	high : number_field | inline_expression | variable_ref
+	digits: number_field | inline_expression | variable_ref
+
+	unknown_values : _field_list
+	non_numeric_field_list: _non_numeric_field_list -> unknown_values
+	_non_numeric_field_list: string_literal ("," _field)*
+
+	offset           : decimal_int_constant
+	kvp_key         : KEY
+	encoding         : identifier
+	length           : decimal_int_constant
 
 // Lines beginning with #. Typiclly preprocessor directives
 _pp_line       : hashdef | error
-hashdef        :_HASHDEF_TAG identifier "=" defined_value _EOL
+hashdef        :_HASHDEF_TAG symbol "=" defined_value _EOL
+symbol:         _identifier
 _HASHDEF_TAG   : "#" WS_INLINE? "define"i 
 defined_value  : ANY_VALUE
 error          : _HAS_ERROR_TAG ANY_VALUE  _EOL
 _HAS_ERROR_TAG : "#" WS_INLINE? "error"i 
 
+// defaultValue
 defaultvalue_line:  "defaultValue"i "=" identifier "," default_value _EOL
 default_value    : ANY_VALUE
 
+// text = 
 text_line      : _TEXTLINE_TAG string_value _EOL
 _TEXTLINE_TAG  : "text"i WS_INLINE? "="
 
+// messageEnvelopeFormat
 message_format_line: "messageEnvelopeFormat" "=" ANY_VALUE _EOL
+
+// Shared 
+
+xbins       : "xBins"i "=" axis_bin _EOL
+ybins       : "yBins"i "=" axis_bin _EOL
+axis_bin    : constant_ref ("," outputchannel ("," unknown)?)? 
+	constant_ref : _identifier
+	outputchannel: _identifier
+	unknown: _identifier
+help_topic  : "topicHelp"i "=" string_literal _EOL
+
 
 // ============================ Comma Delimited Field List  ============================
 
+field_list  : _field_list
 _field_list : (_field_list ",")? _field?
 _field      :  inline_expression 
              | variable_ref 
              | type_other 
-             | data_type 
-             | array_size_1d
-             | array_size_2d 
-             | bit_size 
              | code_override
              | type_kvp
              | conditional_expression
              | filter_field
 variable_ref  : "$" CNAME
-array_size_1d   : "[" additive_expression "]"
-array_size_2d   : "[" additive_expression "x" additive_expression "]"
+dim1d   : "[" additive_expression "]"
+dim2d   : "[" additive_expression "x" additive_expression "]" -> dim2d
 bit_size : "[" additive_expression ":" additive_expression "]"
 data_type  : DATA_TYPE
-DATA_TYPE       : ("S" | "U" | "F") DECIMAL_INT_CONSTANT
+DATA_TYPE.2     : ("S" | "U" | "F") DECIMAL_INT_CONSTANT
 inline_expression  : "{" conditional_expression? "}"
 code_override: "%code_override"i "=" (_name_override | variable_ref)
 _name_override   : _NAME_TAG conditional_expression
 _NAME_TAG        : "name"i WS_INLINE? "="
 type_kvp        : TYPE_KVP
-TYPE_KVP    : (DECIMAL_INT_CONSTANT | CNAME) WS_INLINE? "=" WS_INLINE? (ESCAPED_STRING | NUMBER_FIELD)
-NUMBER_FIELD.-1 : FLOATING_CONSTANT | DECIMAL_INT_CONSTANT | BINARY_INT_CONSTANT | HEX_CONSTANT
+TYPE_KVP    : (DECIMAL_INT_CONSTANT | CNAME) WS_INLINE? "=" WS_INLINE? (ESCAPED_STRING | NUMBER)
 filter_field       :_FILTER
 _FILTER           : /\s*&|=|<|>\s*(?=,)/
 type_other        : ANY_FIELD_VALUE
 ANY_FIELD_VALUE.-1: /[^,\n]+/
+number_field : NUMBER
+NUMBER               : ["+"|"-"]? (FLOAT | INT)
+
+// ============================ General  ============================
+
+ANY_VALUE      : /[^\n]+/
+KEY.-1         : (CNAME | ESCAPED_STRING) WS_INLINE? "="
+_EOL           : NEWLINE
+_identifier    : identifier
+page_num          : decimal_int_constant
 
 // ============================ Expressions ===========================
 
@@ -207,11 +299,4 @@ hex_constant         : HEX_CONSTANT
 HEX_CONSTANT.2       : /0x[0-9a-fA-F]+/
 char_constant        : /'[^'\\\n]'/ // This is too simplistic. Need to handle escape sequences.
 floating_constant    : FLOATING_CONSTANT
-FLOATING_CONSTANT    : (FLOAT | SIGNED_FLOAT) "f"?
-
-// ============================ General  ============================
-
-ANY_VALUE      : /[^\n]+/
-KEY.-1         : (CNAME | ESCAPED_STRING) WS_INLINE? "="
-_EOL           : NEWLINE
-_identifier    : identifier
+FLOATING_CONSTANT    : ["+"|"-"]? FLOAT "f"?
