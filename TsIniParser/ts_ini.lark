@@ -52,7 +52,7 @@ _TABLE_TAG          : "table"i WS_INLINE? "="
 	table_header      : table_id "," map3d_id "," title "," page_num ("," unknown_values)?
 		table_id          : _identifier
 		map3d_id          : _identifier
-		title             : string_literal
+		title             : _string_literal
 
 	_table_line       : kvp_line | _pp_line | grid_height | grid_orient | zbins | xbins | ybins | help_topic | xy_labels | updown_labels
 	grid_height       : "gridHeight"i "=" number_field _EOL
@@ -72,19 +72,19 @@ gauge_category          : _GAUGE_CATEGORY_TAG ANY_VALUE _EOL _gauge_category_lin
 curveeditor_section : "[CurveEditor]" _EOL  curve+
 curve               : "curve"i "="  _curve_header _EOL _curve_line+
 	_curve_header   : curve_id "," name ("," page_num)?
-		curve_id        : identifier
-		name            : string_literal
+		curve_id        : _identifier
+		name            : _string_literal
 
 	_curve_line  : kvp_line | _pp_line | xbins | ybins | xaxis_limits | yaxis_limits | columnlabels | gauge | size | line_label
 	xaxis_limits : "xaxis"i "=" axis_limits _EOL
 	yaxis_limits : "yaxis"i "=" axis_limits _EOL
 	columnlabels : "columnlabel"i "=" _label_list _EOL
-	gauge        : GAUGE_TAG identifier _EOL
+	gauge        : GAUGE_TAG  _identifier ("," unknown_values)? _EOL
 		GAUGE_TAG    : "gauge"i WS_INLINE? "="
 	size         : "size"i "=" dim1 "," dim2 _EOL
 		dim1         : number_field
 		dim2         : number_field
-	line_label   : "lineLabel"i "=" string_literal _EOL
+	line_label   : "lineLabel"i "=" _string_literal _EOL
 
 	axis_limits  : min "," max "," step
 		min          : number_field | inline_expression | variable_ref
@@ -139,10 +139,17 @@ KVP_STRING_TAG  : KEY WS_INLINE? "string"i
 	non_numeric_field_list: _non_numeric_field_list -> unknown_values
 	_non_numeric_field_list: string_literal ("," _field)*
 
-	offset           : decimal_int_constant
+	offset           : INT
 	kvp_key         : KEY
-	encoding         : identifier
-	length           : decimal_int_constant
+	encoding         : _identifier
+	length           : INT
+
+	dim1d   : "[" INT "]"
+	dim2d   : "[" INT "x" INT "]" -> dim2d
+	bit_size : "[" INT ":" INT "]"
+	data_type  : DATA_TYPE
+	DATA_TYPE.2     : ("S" | "U" | "F") INT
+
 
 // Lines beginning with #. Typiclly preprocessor directives
 _pp_line       : hashdef | error
@@ -172,32 +179,28 @@ axis_bin    : constant_ref ("," outputchannel ("," unknown)?)?
 	constant_ref : _identifier
 	outputchannel: _identifier
 	unknown: _identifier
-help_topic  : "topicHelp"i "=" string_literal _EOL
+help_topic  : "topicHelp"i "=" (string_literal | identifier) _EOL
 
 
 // ============================ Comma Delimited Field List  ============================
 
-field_list  : _field_list
 _field_list : (_field_list ",")? _field?
 _field      :  inline_expression 
              | variable_ref 
              | type_other 
              | code_override
              | type_kvp
-             | conditional_expression
              | filter_field
+			 | string_literal
 variable_ref  : "$" CNAME
-dim1d   : "[" additive_expression "]"
-dim2d   : "[" additive_expression "x" additive_expression "]" -> dim2d
-bit_size : "[" additive_expression ":" additive_expression "]"
-data_type  : DATA_TYPE
-DATA_TYPE.2     : ("S" | "U" | "F") DECIMAL_INT_CONSTANT
-inline_expression  : "{" conditional_expression? "}"
+inline_expression  : "{" INLINE_EXPRESSION? "}"
+INLINE_EXPRESSION  : /[^}\n]+/
 code_override: "%code_override"i "=" (_name_override | variable_ref)
-_name_override   : _NAME_TAG conditional_expression
+_name_override   : _NAME_TAG NAME_OVERRIDE
+NAME_OVERRIDE    :  /[^,\n]+/
 _NAME_TAG        : "name"i WS_INLINE? "="
 type_kvp        : TYPE_KVP
-TYPE_KVP    : (DECIMAL_INT_CONSTANT | CNAME) WS_INLINE? "=" WS_INLINE? (ESCAPED_STRING | NUMBER)
+TYPE_KVP    : (INT | CNAME) WS_INLINE? "=" WS_INLINE? (ESCAPED_STRING | NUMBER)
 filter_field       :_FILTER
 _FILTER           : /\s*&|=|<|>\s*(?=,)/
 type_other        : ANY_FIELD_VALUE
@@ -210,93 +213,8 @@ NUMBER               : ["+"|"-"]? (FLOAT | INT)
 ANY_VALUE      : /[^\n]+/
 KEY.-1         : (CNAME | ESCAPED_STRING) WS_INLINE? "="
 _EOL           : NEWLINE
-_identifier    : identifier
-page_num          : decimal_int_constant
-
-// ============================ Expressions ===========================
-
-// A TS INI file expression statement as a lark grammar.
-//
-// Not fully tested
-//
-// Since TS is a Java app, loosley based on https://cs.au.dk/~amoeller/RegAut/JavaBNF.html
-
-// Start point
-?conditional_expression : logical_expression | ternary_expression
-
-?primary_expression : identifier
-	| _constant
-	| string_literal
-	| nested_expression
-nested_expression: "(" conditional_expression ")"
-
-_postfix_expression : primary_expression
-	| array_index_expression
-	| fncall_index_expression
-	| struct_access_expression
-	| postfix_inc_expression
-	| postfix_dec_expression
-
-array_index_expression: _postfix_expression "[" conditional_expression "]"
-fncall_index_expression: _postfix_expression "(" argument_expression_list? ")"
-struct_access_expression: _postfix_expression "." identifier
-postfix_inc_expression: _postfix_expression "++"
-postfix_dec_expression: _postfix_expression "--"
-
-?argument_expression_list : (argument_expression_list ",")? conditional_expression
-	
-_unary_expression : _postfix_expression
-	| prefix_inc_expression
-	| prefix_dec_expression
-	| unary_op_expression
-
-prefix_inc_expression: "++" _unary_expression
-prefix_dec_expression: "--" _unary_expression
-unary_op_expression: _unary_op _unary_expression
-
-!_unary_op : "&"
-	| "*"
-	| "+"
-	| "-"
-	| "~"
-	| "!"
-	
-?multiplicative_expression : (multiplicative_expression _multiply_op)? _unary_expression
-!_multiply_op: "*" | "/" | "%"
-
-?additive_expression : (additive_expression _additive_op)? multiplicative_expression
-!_additive_op: "+" | "-"
-
-?shift_expression : (shift_expression _shift_op)? additive_expression
-!_shift_op: "<<" | ">>"
-
-?relational_expression : (relational_expression _relational_op)? shift_expression
-!_relational_op: "<" | ">" | "<=" | ">="
-
-?equality_expression : (equality_expression _equality_op)? relational_expression
-!_equality_op: "==" | "!="
-
-?bit_expression: (bit_expression _bit_op)? equality_expression
-!_bit_op: "&" | "|" | "^"
-
-?logical_expression : (logical_expression _logical_op)? bit_expression
-!_logical_op: "&&" | "||"
-
-ternary_expression: logical_expression "?" conditional_expression ":" conditional_expression
-	
-_constant : _integer_constant
-             | char_constant
-             | floating_constant
-
-identifier           : CNAME
-string_literal       : ESCAPED_STRING
-_integer_constant    : binary_constant | decimal_int_constant | hex_constant
-decimal_int_constant : DECIMAL_INT_CONSTANT
-DECIMAL_INT_CONSTANT : /(?:\+|-)?\d+/
-binary_constant      : BINARY_INT_CONSTANT
-BINARY_INT_CONSTANT.2: /0b(?:0|1)+/
-hex_constant         : HEX_CONSTANT
-HEX_CONSTANT.2       : /0x[0-9a-fA-F]+/
-char_constant        : /'[^'\\\n]'/ // This is too simplistic. Need to handle escape sequences.
-floating_constant    : FLOATING_CONSTANT
-FLOATING_CONSTANT    : ["+"|"-"]? FLOAT "f"?
+identifier     : _identifier
+_identifier    : CNAME
+page_num          : INT
+string_literal  : _string_literal
+_string_literal : ESCAPED_STRING

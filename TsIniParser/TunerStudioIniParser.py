@@ -22,14 +22,8 @@ class TsIniParser:
             return token.update(value=token.value.rstrip(' ='))
         def NUMBER(self, token):
             return token.update(value=float(token.value))
-        def DECIMAL_INT_CONSTANT(self, token):
-            return token.update(value=int(token.value))        
-        def BINARY_INT_CONSTANT(self, token):
-            return token.update(value=int(token.value, 2))
-        def HEX_CONSTANT(self, token):
-            return token.update(value=int(token.value, 16))
-        def FLOATING_CONSTANT(self, token):
-            return token.update(value=float(token.value))   
+        def INT(self, token):
+            return token.update(value=int(token.value))
 
         def _extract_key(self, token):
             return token.update(value=token.value.split('=')[0].strip(' \t'))
