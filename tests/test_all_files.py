@@ -1,6 +1,6 @@
 import unittest
 from logging import DEBUG, StreamHandler, getLogger
-from TsIniParser import TsIniParser
+from TsIniParser import TsIniParser, TsParseTreeTransformer
 from pathlib import Path
 
 from lark import logger
@@ -16,8 +16,10 @@ class test_all_files(unittest.TestCase):
 
     def test_speeduino(self):
         parser = TsIniParser()
-        test_file = THIS_DIR / "Test_Files" / "Speeduino.ini"
-        parse_file(test_file, parser)
+        test_file = THIS_DIR / "Test_Files" /  "speeduino.ini"
+        tree = parse_file(test_file, parser)
+        result = TsParseTreeTransformer().transform(tree)
+        print(len(result))
 
     def test_allfiles(self):
         parser = TsIniParser()

@@ -20,7 +20,7 @@ class TsIniParser:
         """Process terminal tokens"""
         def KEY(self, token):
             return token.update(value=token.value.rstrip(' ='))
-        def NUMBER_FIELD(self, token):
+        def NUMBER(self, token):
             return token.update(value=float(token.value))
         def DECIMAL_INT_CONSTANT(self, token):
             return token.update(value=int(token.value))        
@@ -30,6 +30,14 @@ class TsIniParser:
             return token.update(value=int(token.value, 16))
         def FLOATING_CONSTANT(self, token):
             return token.update(value=float(token.value))   
+
+        def _extract_key(self, token):
+            return token.update(value=token.value.split('=')[0].strip(' \t'))
+        KVP_SCALAR_TAG = _extract_key
+        KVP_BITS_TAG = _extract_key
+        KVP_ARRAY_TAG = _extract_key
+        KVP_STRING_TAG = _extract_key
+        GAUGE_TAG = _extract_key
 
     def __init__(self):
         self._pre_processor = TsIniPreProcessor()
