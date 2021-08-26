@@ -1,8 +1,23 @@
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass
 from abc import ABC, abstractmethod
+from typing import Dict, Any, List, TypeVar, Generic
+
+class is_keyed(ABC):
+    @abstractmethod
+    def key(self):
+        pass 
+
+DictItem = TypeVar('DictItem')
 
 @dataclass
-class AbstractSection(ABC):
+class DictBase(Generic[DictItem], Dict[Any, DictItem]):
+    dict_data:InitVar[Dict[Any, DictItem]]      
+
+    def __post_init__(self, dict_data:Dict[Any, DictItem]):
+        dict.__init__(self, dict_data)
+
+@dataclass
+class AbstractSection(is_keyed):
     name:str
 
     @property
@@ -13,11 +28,8 @@ class AbstractSection(ABC):
     def is_empty(self):
         pass
 
-@dataclass(init=False)
-class DictSection(AbstractSection, dict):
-    def __init__(self, name, dict_kvp):
-        AbstractSection.__init__(self, name = name)
-        dict.__init__(self, dict_kvp)
+@dataclass
+class DictSection(AbstractSection, DictBase[DictItem]):
 
     def is_empty(self):
         return len(self)==0
@@ -29,30 +41,9 @@ class Section(AbstractSection):
     def is_empty(self):
         return len(self.lines)==0
 
-@dataclass(eq=False, order=False, init=False)
-class Page(dict):
-    page_num:int
-    constants:dict
-
-    def __init__(self, page_num, dict_kvp):
-        self.page_num = page_num
-        dict.__init__(self, dict_kvp)
-
-    @property
-    def key(self):
-        return self.page_num
-
-@dataclass(init=False)
-class ConstantsSection(DictSection):
-    header_lines:list
-
-    def __init__(self, name, header_lines, dict_kvp):
-        super().__init__(name, dict_kvp)
-        self.header_lines = header_lines
-
 @dataclass
-class KeyValuePair:
-    kvp_key:str
+class KeyValuePair(is_keyed):
+    key_name:str
     values:list
 
     @property
@@ -60,7 +51,7 @@ class KeyValuePair:
         return self.kvp_key
 
 @dataclass
-class HashDef:
+class HashDef(is_keyed):
     symbol:str
     defined_value:list
 
@@ -68,15 +59,16 @@ class HashDef:
     def key(self):
         return self.symbol
 
-@dataclass()
-class Variable(ABC):
+@dataclass
+class Variable(is_keyed):
     name:str
     unknown_values:list = None
 
     @property
     def key(self):
         return self.name
-@dataclass()
+
+@dataclass
 class TypedVariable(Variable):
     data_type:str =''
 
@@ -109,13 +101,25 @@ class StringVariable(Variable):
     length:int = 0
 
 @dataclass
+class Page(is_keyed, DictBase[Variable]):
+    page_num:int
+
+    @property
+    def key(self):
+        return self.page_num
+
+@dataclass
+class ConstantsSection(DictSection[Page]):
+    header_lines:list
+
+@dataclass
 class AxisBin:
     constant_ref:str
     outputchannel:str = None
     unknown:str = None
 
 @dataclass
-class Table:
+class Table(is_keyed):
     table_id:str
     map3d_id:str
     title:str
@@ -141,7 +145,7 @@ class Axis:
     step:int
 
 @dataclass
-class Curve:
+class Curve(is_keyed):
     curve_id:str
     name:str
     columnlabels: list
@@ -151,15 +155,18 @@ class Curve:
     ybins:AxisBin
     size:list=None
     gauge:str=''
-    line_labels:list = None
+    line_label:list = None
 
     @property
     def key(self):
         return self.curve_id
 
-class TsIniFile(dict):
-    def __init__(self, iter):
-        super().__init__(iter)
+@dataclass
+class TsIniFile(DictBase[AbstractSection]):
+    file_header:List
+
+    def __post_init__(self, dict:Dict[Any, AbstractSection]):
+        super().__post_init__(dict)
         self._wire_constants()
 
     def _wire_constants(self):
@@ -205,7 +212,13 @@ class TsIniFile(dict):
         return constant
         
     def _wire_curve(self, curve):
-        curve.xbins.constant_ref = self.find_named_variable(curve.xbins.constant_ref, Array1dVariable)
-        curve.xbins.constant_ref.curve = curve
-        curve.ybins.constant_ref = self.find_named_variable(curve.ybins.constant_ref, Array1dVariable)
-        curve.ybins.constant_ref.curve = curve
+        def set_bin_constant(bin):
+            bin.constant_ref = self.find_named_variable(bin.constant_ref, Array1dVariable)
+            bin.constant_ref.curve = curve
+
+        set_bin_constant(curve.xbins)
+        if isinstance(curve.ybins, list):
+            for bin in curve.ybins:
+                set_bin_constant(bin)
+        else:
+            set_bin_constant(curve.ybins)
