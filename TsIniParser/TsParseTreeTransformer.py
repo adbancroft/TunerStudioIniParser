@@ -1,10 +1,12 @@
+from typing import Callable
 from lark import Transformer
 from lark.visitors import Discard
 from .TsIniFile import *
 
 class TsParseTreeTransformer(Transformer):
     
-    def __init__(self):
+    def __init__(self, factory:Callable[[str, dict], Any]):
+        self._factory = factory
         self._symbols = {}
 
     @staticmethod
@@ -23,37 +25,6 @@ class TsParseTreeTransformer(Transformer):
         if isinstance(token.value, str):
             return token.value.strip('"')
         return token.value
-
-    _variable_subclasses = {
-            'kvp_bits_line' : BitVariable,
-            'kvp_scalar_line' : ScalarVariable, 
-            'kvp_array_line' : Array1dVariable, 
-            'kvp_string_line' : StringVariable,
-            'kvp_line' : KeyValuePair,
-            'page' : Page,
-            'constants_section': ConstantsSection,
-            'pcvariables_section': DictSection[Variable],
-            'context_help_section': DictSection[str],
-            'axis_bin': AxisBin,
-            'table': Table,
-            'tableeditor_section': DictSection[Table],
-            'axis_limits': Axis,
-            'curve': Curve,
-            'curveeditor_section': DictSection[Curve],
-            'generic_section': Section,
-            'start': TsIniFile,
-        }
-
-    def _type_factory(self, data, dict_data):
-        if 'kvp_array_line'==data:
-            if 'dim1d' in dict_data:
-                type = Array1dVariable
-            else:
-                type = Array2dVariable
-        else:
-            type = self.__class__._variable_subclasses[data]
-        
-        return type(**dict_data)
 
     def transform_hoist_children(self, children):
         return self.__class__._hoist_children_tag
@@ -122,7 +93,7 @@ class TsParseTreeTransformer(Transformer):
 
         # Convert to a dataclass based type
         if self.__class__._to_type_tag in transform_tags:
-            return self._type_factory(data, self.__class__._dict_from_tuples(children))
+            return self._factory(data, self.__class__._dict_from_tuples(children))
 
         # Default - convert to a tuple, with the tree node type as item[0]
         return (data, children)      
