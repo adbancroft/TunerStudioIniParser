@@ -156,10 +156,11 @@ KVP_STRING_TAG  : KEY WS_INLINE? "string"i
 
 // Lines beginning with #. Typiclly preprocessor directives
 _pp_line       : hashdef | error
-hashdef        :_HASHDEF_TAG symbol "=" defined_value _EOL transform_type_from_dict
-symbol         : _identifier transform_tuple_only
-_HASHDEF_TAG   : "#" WS_INLINE? "define"i 
-defined_value  : ANY_VALUE
+hashdef        :_HASHDEF_TAG symbol "=" (_hashdef_variable | (_field_list _EOL))
+	symbol         : _identifier transform_tuple_only
+	_HASHDEF_TAG   : "#" WS_INLINE? "define"i 
+	defined_value  : ANY_VALUE transform_hoist_children
+	_hashdef_variable : kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | kvp_line
 error          : _HAS_ERROR_TAG ANY_VALUE  _EOL
 _HAS_ERROR_TAG : "#" WS_INLINE? "error"i 
 
@@ -193,7 +194,7 @@ _field      :  inline_expression
              | type_kvp
              | filter_field
 			 | string_literal
-variable_ref      : "$" CNAME transform_tuple_only
+variable_ref      : "$" CNAME
 inline_expression : "{" INLINE_EXPRESSION? "}" transform_tuple_only
 	INLINE_EXPRESSION : /[^}\n]+/
 code_override     : "%code_override"i "=" (name_override | variable_ref) transform_tuple_only

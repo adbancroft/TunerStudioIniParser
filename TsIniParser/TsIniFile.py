@@ -51,15 +51,6 @@ class KeyValuePair(is_keyed):
         return self.kvp_key
 
 @dataclass
-class HashDef(is_keyed):
-    symbol:str
-    defined_value:list
-
-    @property
-    def key(self):
-        return self.symbol
-
-@dataclass
 class Variable(is_keyed):
     name:str
     unknown_values:list = None

@@ -1,9 +1,12 @@
 from lark import Transformer
-from lark.visitors import TransformerChain
+from lark.visitors import Discard
 from .TsIniFile import *
 
 class TsParseTreeTransformer(Transformer):
     
+    def __init__(self):
+        self._symbols = {}
+
     @staticmethod
     def _dict_from_tuples(items):
         names = set(item[0] for item in items)
@@ -26,12 +29,11 @@ class TsParseTreeTransformer(Transformer):
             'kvp_scalar_line' : ScalarVariable, 
             'kvp_array_line' : Array1dVariable, 
             'kvp_string_line' : StringVariable,
-            'hashdef' : HashDef,
             'kvp_line' : KeyValuePair,
             'page' : Page,
             'constants_section': ConstantsSection,
-            'pcvariables_section': DictSection[Any],
-            'context_help_section': DictSection[Any],
+            'pcvariables_section': DictSection[Variable],
+            'context_help_section': DictSection[str],
             'axis_bin': AxisBin,
             'table': Table,
             'tableeditor_section': DictSection[Table],
@@ -78,10 +80,20 @@ class TsParseTreeTransformer(Transformer):
         _tuple_only_tag,
     ]
 
+    @staticmethod
+    def _collapse_variable_refs(children): 
+        flat_list = []
+        for c in children:
+            if isinstance(c, tuple) and c[0]=='variable_ref':
+                flat_list = flat_list + c[1]
+            else:
+                flat_list.append(c)
+        return flat_list
+
     # Apply defaults based empty rules (which act as tags)
     def __default__(self, data, children, meta):       
         transform_tags = [c for c in children if c in self.__class__._transform_tags]
-        children = [c for c in children if c not in transform_tags]
+        children = self.__class__._collapse_variable_refs((c for c in children if c not in transform_tags))
 
         if self.__class__._collapse_dups_tag in transform_tags:
             dup_map = {}
@@ -115,3 +127,12 @@ class TsParseTreeTransformer(Transformer):
         # Default - convert to a tuple, with the tree node type as item[0]
         return (data, children)      
     
+    def hashdef(self, children):
+        self._symbols[children[0][1]] = self.__class__._collapse_variable_refs(children[1:])
+        raise Discard
+
+    def variable_ref(self, children):
+        key = children[0]
+        if key in self._symbols:
+            return ('variable_ref', self._symbols[key])
+        raise Discard
