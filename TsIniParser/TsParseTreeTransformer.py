@@ -57,8 +57,6 @@ class TsParseTreeTransformer(Transformer):
         return self.__class__._hoist_children_tag
     def transform_tuple_only(self, children):
         return self.__class__._tuple_only_tag 
-    def transform_dict_from_tuples(self, children):
-        return self.__class__._dict_from_tuple_tag        
     def transform_dict_from_types(self, children):
         return self.__class__._dict_from_types_tag
     def transform_type_from_dict(self, children):
@@ -68,13 +66,11 @@ class TsParseTreeTransformer(Transformer):
         
     _hoist_children_tag = transform_hoist_children.__name__
     _tuple_only_tag = transform_tuple_only.__name__
-    _dict_from_tuple_tag = transform_dict_from_tuples.__name__
     _dict_from_types_tag = transform_dict_from_types.__name__
     _to_type_tag = transform_type_from_dict.__name__
     _collapse_dups_tag = transform_collapse_dups.__name__
 
     _transform_tags = [
-        _dict_from_tuple_tag,
         _dict_from_types_tag,
         _collapse_dups_tag,
         _to_type_tag,
@@ -97,10 +93,6 @@ class TsParseTreeTransformer(Transformer):
                 else:
                     dup_map[key] = value
             children = [(key, value) for key, value in dup_map.items()]
-
-        # _dict_from_tuple_tag==dictionary from raw tuples (item[0]==key)
-        if self.__class__._dict_from_tuple_tag in transform_tags:
-            children = self.__class__._dict_from_tuples(children)
 
         # _dict_from_types_tag==dictionary from typed tuples (item[0]==type, so key is in item[1]), no tuple
         if self.__class__._dict_from_types_tag in transform_tags:

@@ -222,7 +222,6 @@ _string_literal : ESCAPED_STRING
 
 transform_hoist_children:
 transform_tuple_only:
-transform_dict_from_tuples:
 transform_dict_from_types:
 transform_type_from_dict:
 transform_collapse_dups:
