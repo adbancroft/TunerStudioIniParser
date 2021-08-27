@@ -1,4 +1,5 @@
 from TsIniParser.TunerStudioIniParser import TsIniParser
-from .DataClassTransformer import DataClassTransformer
-from .TsIniFile import *
-from .TypeFactory import dataclass_factory
+from TsIniParser.RuleProcessors import RollupRuleProcessor, ChildRuleProcessor
+from TsIniParser.BaseTransformer import BaseTransformer
+from .dataclasses.DataClassTransformer import DataClassTransformer
+from .dataclasses.TsIniFile import *

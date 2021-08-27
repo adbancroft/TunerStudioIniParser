@@ -1,8 +1,7 @@
 from lark import Transformer
 from lark.visitors import Discard
-from .RuleProcessors import RollupRuleProcessor, ChildRuleProcessor
 
-class DataClassTransformer(Transformer):
+class BaseTransformer(Transformer):
     """Transforms the raw INI Lark tree by processing transform directives
     embedded in the grammar (as empty rules)
     
@@ -11,7 +10,7 @@ class DataClassTransformer(Transformer):
     Default is to transform into a dataclass
     """
 
-    def __init__(self, return_processor = RollupRuleProcessor(), child_processor = ChildRuleProcessor()):
+    def __init__(self, return_processor, child_processor):
         self._symbols = {}
         self._return_processsor = return_processor
         self._child_processor = child_processor

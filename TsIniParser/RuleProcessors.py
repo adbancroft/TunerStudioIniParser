@@ -1,6 +1,5 @@
 
 from typing import Callable, Any
-from .TypeFactory import dataclass_factory
 
 class RollupRuleProcessor:
     """Handles transform rules related to how a rule is rolled up the tree to it'a parent"""
@@ -25,8 +24,9 @@ class RollupRuleProcessor:
 class ChildRuleProcessor:
     """Handles processing of transform rules that apply to a rules children"""
 
-    def __init__(self, factory:Callable[[str, dict], Any]=dataclass_factory):
+    def __init__(self, factory:Callable[[str, dict], Any], key_getter:Callable[[Any], Any]):
         self._factory = factory
+        self._key_getter = key_getter
 
     @staticmethod
     def _dict_from_tuples(items):
@@ -36,7 +36,7 @@ class ChildRuleProcessor:
         return dict(((item[0], item[1]) for item in items))
 
     def _dict_from_types(self, data, children):
-        return self.__class__._dict_from_tuples([(i.key, i) for i in children])
+        return self.__class__._dict_from_tuples([(self._key_getter(i), i) for i in children])
 
     def _collapse_dups(self, data, children):
         dup_map = {}
