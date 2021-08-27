@@ -1,6 +1,7 @@
 from dataclasses import InitVar, dataclass
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, TypeVar, Generic
+from .dataclass_utils import from_existing
 
 class is_keyed(ABC):
     @abstractmethod
@@ -130,6 +131,14 @@ class Table(is_keyed):
         return self.table_id
 
 @dataclass
+class TableArray1dVariable(Array1dVariable):
+    table:Table = None
+
+@dataclass
+class TableArray2dVariable(Array2dVariable):
+    table:Table = None
+
+@dataclass
 class Axis:
     min:int
     max:int
@@ -153,6 +162,10 @@ class Curve(is_keyed):
         return self.curve_id
 
 @dataclass
+class CurveArray1dVariable(Array1dVariable):
+    curve:Curve = None
+
+@dataclass
 class TsIniFile(DictBase[AbstractSection]):
     file_header:List
 
@@ -167,13 +180,21 @@ class TsIniFile(DictBase[AbstractSection]):
             self._wire_curve(table)
 
     def _wire_table(self, table):
+        def set_bin_constant(bin, page, type):
+            original_variable = page[bin.constant_ref]
+            if not isinstance(original_variable, type):
+                new_instance = from_existing(original_variable, type, {'table':table})
+                page[bin.constant_ref] = new_instance
+            else:
+                new_instance = original_variable
+            bin.constant_ref = new_instance
+
+
         page = self['Constants'][table.page_num]
-        table.xbins.constant_ref = page[table.xbins.constant_ref]
-        table.xbins.constant_ref.table = table
-        table.ybins.constant_ref = page[table.ybins.constant_ref]
-        table.ybins.constant_ref.table = table
-        table.zbins.constant_ref = page[table.zbins.constant_ref]
-        table.zbins.constant_ref.table = table
+
+        set_bin_constant(table.xbins, page, TableArray1dVariable)
+        set_bin_constant(table.ybins, page, TableArray1dVariable)
+        set_bin_constant(table.zbins, page, TableArray2dVariable)
 
     def _find_constant_nothrow(self, name, type):
         for page in self['Constants'].values():
@@ -192,20 +213,42 @@ class TsIniFile(DictBase[AbstractSection]):
         variable = self['PcVariables'].get(name) 
         return variable if isinstance(variable, type) else None
 
-    def find_named_variable_nothrow(self, name, type):
+    def _find_named_variable_nothrow(self, name, type):
         constant =  self._find_constant_nothrow(name, type)
         return constant if constant else self._find_pcvariable_nothrow(name, type)
 
-    def find_named_variable(self, name, type):
-        constant =  self.find_named_variable_nothrow(name, type)
+    def _find_named_variable(self, name, type):
+        constant =  self._find_named_variable_nothrow(name, type)
         if not constant:
             raise KeyError(name)
         return constant
-        
+
+    def _replace_constant(self, name, original_instance, new_instance):
+        for page in self['Constants'].values():
+            if page.get(name)==original_instance:
+                page[name] = new_instance
+                return True
+        return False
+
+    def _replace_variable(self, name, original_instance, new_instance):
+        if self['PcVariables'].get(name)==original_instance:
+            self['PcVariables'][name] = new_instance
+            return True
+        return False
+
+    def _replace_named_variable(self, name, original_instance, new_instance):
+        if not self._replace_constant(name, original_instance, new_instance):
+            return self._replace_variable(name, original_instance, new_instance)
+
     def _wire_curve(self, curve):
         def set_bin_constant(bin):
-            bin.constant_ref = self.find_named_variable(bin.constant_ref, Array1dVariable)
-            bin.constant_ref.curve = curve
+            original_variable = self._find_named_variable(bin.constant_ref, Array1dVariable)
+            if not isinstance(original_variable, CurveArray1dVariable):
+                new_instance = from_existing(original_variable, CurveArray1dVariable, {'curve':curve})
+                self._replace_named_variable(bin.constant_ref, original_variable, new_instance)
+            else:
+                new_instance = original_variable
+            bin.constant_ref = new_instance
 
         set_bin_constant(curve.xbins)
         if isinstance(curve.ybins, list):
