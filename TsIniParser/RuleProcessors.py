@@ -1,6 +1,5 @@
 
 from typing import Callable, Any
-from .TypeFactory import dataclass_factory
 
 class RollupRuleProcessor:
     """Handles transform rules related to how a rule is rolled up the tree to it'a parent"""
@@ -25,7 +24,7 @@ class RollupRuleProcessor:
 class ChildRuleProcessor:
     """Handles processing of transform rules that apply to a rules children"""
 
-    def __init__(self, factory:Callable[[str, dict], Any]=dataclass_factory, key_getter:Callable[[Any], Any]=lambda item:item.key):
+    def __init__(self, factory:Callable[[str, dict], Any], key_getter:Callable[[Any], Any]):
         self._factory = factory
         self._key_getter = key_getter
 

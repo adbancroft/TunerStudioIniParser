@@ -3,7 +3,7 @@ from more_itertools import first_true
 from pathlib import Path
 from TsIniParser.TextIoLexer import TextIoLexer
 
-_GRAMMAR = Path(__file__).parent / 'pre_processor.lark'
+_GRAMMAR = Path(__file__).parent / 'grammars' / 'pre_processor.lark'
 _GRAMMAR_CACHE = _GRAMMAR.with_suffix('.lark.cache')
 
 class TsIniPreProcessor:
