@@ -38,7 +38,7 @@ symbol         : CNAME
 _non_condtional_line  : _passthrough_line | set | unset
 _passthrough_line     : LINE NEWLINE _WS*
 LINE                  : /(?!(?: |\t))/ (NON_CONDITIONAL_PPLINE | NON_PPLINE)
-NON_CONDITIONAL_PPLINE: /#(?: |\t)*(?:define|error)/ _STOP_MATCH /.+/
+NON_CONDITIONAL_PPLINE: /#(?: |\t)*(?:define|error)/ (_STOP_MATCH /.+?/)+
 NON_PPLINE        : (_UNQUOTED_STRING | _QUOTED_STRING)+
 // Various lookaheads that will stop regex parsing
 _CPP_COMMENT_STOP : /(?!(?: |\t)*\/\/)/   // C++ style comment (//), space prefixed

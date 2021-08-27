@@ -1,3 +1,4 @@
 from TsIniParser.TunerStudioIniParser import TsIniParser
-from .TsParseTreeTransformer import TsParseTreeTransformer
+from .DataClassTransformer import DataClassTransformer
 from .TsIniFile import *
+from .TypeFactory import dataclass_factory
