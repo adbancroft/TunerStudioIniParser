@@ -4,7 +4,6 @@ from logging import DEBUG
 from lark import logger
 from TsIniParser import DataClassTransformer
 import jsonpickle
-from TsIniParser import dataclass_factory
 
 logger.setLevel(DEBUG)
 
@@ -15,5 +14,5 @@ if __name__ == '__main__':
     with open(sys.argv[1], 'r') as file:  
         tree = parser.parse(file)
         print(len(tree.children))
-        result = DataClassTransformer(dataclass_factory).transform(tree)
+        result = DataClassTransformer().transform(tree)
         print(jsonpickle.encode(result))
