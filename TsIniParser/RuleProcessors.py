@@ -19,7 +19,7 @@ class RollupRuleProcessor:
         if len(return_action)>1:
             raise ValueError()
         return (self.__class__._rule_action_map[return_action[0]] if return_action else self.__class__._default_action,
-                [c for c in children if c not in return_action])
+                [c for c in children if c not in self.__class__._action_tags])
 
 class ChildRuleProcessor:
     """Handles processing of transform rules that apply to a rules children"""
@@ -33,7 +33,7 @@ class ChildRuleProcessor:
         names = set(item[0] for item in items)
         if len(items)!=len(names):
             raise KeyError('')
-        return dict(((item[0], item[1]) for item in items))
+        return {item[0]:item[1] for item in items}
 
     def _dict_from_types(self, data, children):
         return self.__class__._dict_from_tuples([(self._key_getter(i), i) for i in children])
@@ -47,7 +47,7 @@ class ChildRuleProcessor:
                 dup_map[key].append(value)
             else:
                 dup_map[key] = value
-        return [(key, value) for key, value in dup_map.items()]
+        return dup_map.items()
 
     def _to_type(self, data, children):
         return self._factory(data, self.__class__._dict_from_tuples(children))
@@ -68,7 +68,7 @@ class ChildRuleProcessor:
 
     def extract_actions(self, children):
         processing_action_tags = [c for c in children if c in self.__class__._action_tags]
-        return (processing_action_tags, [c for c in children if c not in processing_action_tags])
+        return (processing_action_tags, [c for c in children if c not in self.__class__._action_tags])
 
     def apply_actions(self, data, children, action_tags):
         for action_tag in action_tags:

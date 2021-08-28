@@ -23,13 +23,14 @@ class BaseTransformer(Transformer):
 
     def _transform_children(self, children):
         def collapse_variable_refs(children):
-            flat_list = []
+            def is_variable_ref(item):
+                return isinstance(item, tuple) and item[0]=='variable_ref'
+            
             for c in children:
-                if isinstance(c, tuple) and c[0]=='variable_ref':
-                    flat_list = flat_list + c[1]
+                if is_variable_ref(c):
+                    yield c[1]
                 else:
-                    flat_list.append(c)
-            return flat_list
+                    yield c
 
         # We always inline variable references - they need to appear in the original
         # position of the variable reference, not as a nested item
