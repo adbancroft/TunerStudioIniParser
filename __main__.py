@@ -2,12 +2,12 @@ import sys
 from TsIniParser import TsIniParser
 from logging import DEBUG
 from lark import logger
-from TsIniParser import DataClassTransformer
-import jsonpickle
-
 logger.setLevel(DEBUG)
 
 if __name__ == '__main__':
+
+    from TsIniParser import TsIniParser, DataClassTransformer
+
     parser = TsIniParser()
     parser.define('LAMBDA', True)
     parser.define('ALPHA_N', True)
