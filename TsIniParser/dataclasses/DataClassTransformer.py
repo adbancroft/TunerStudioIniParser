@@ -2,6 +2,7 @@
 from lark.visitors import Transformer, Discard
 from .TypeFactory import dataclass_factory
 
+
 class DataClassTransformer(Transformer):
 
     def __init__(self):
@@ -23,14 +24,14 @@ class DataClassTransformer(Transformer):
     def _transform_children(self, children):
         """We always inline variable references - they need to appear in the original
         position of the variable reference, not as a nested item
-        
+
         This has to happen when processing the rule that contains the
         variable_ref - we need to embed the child item not the child list"""
 
         def collapse_variable_refs(children):
             def is_variable_ref(item):
-                return isinstance(item, tuple) and item[0] == self._var_tag
-            
+                return isinstance(item, tuple) and item[0] == self.__class__._var_tag
+
             for c in children:
                 if is_variable_ref(c):
                     for item in c[1]:
@@ -114,7 +115,7 @@ class DataClassTransformer(Transformer):
         'page_num',
         'string_literal',
         'name',
-    ]    
+    ]
 
     # Applies to all rules not explicitly processed
     def __default__(self, data, children, meta):
@@ -125,13 +126,13 @@ class DataClassTransformer(Transformer):
             return self._to_type(data, children)
 
         if data in self.__class__._hoist_only_child:
-            if len(children)>1:
+            if len(children) > 1:
                 raise ValueError()
             return (data, children[0] if children else None)
-            
+
         # Default rule action is to transform to a tuple
-        # 
-        # These will typically go on to be dictionary entries 
+        #
+        # These will typically go on to be dictionary entries
         return (data, children)
 
     def _to_type(self, data, children):
