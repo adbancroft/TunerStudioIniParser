@@ -1,7 +1,7 @@
 from pathlib import Path
 from lark import Lark, Tree, Transformer
-from .TunerStudioIniPreProcessor import TsIniPreProcessor
-from .TreeLexer import TreeLexerAdapter
+from .ts_ini_preprocessor import TsIniPreProcessor
+from .tree_lexer import TreeLexerAdapter
 
 _GRAMMAR = Path(__file__).parent / 'grammars' / 'ts_ini.lark'
 _GRAMMAR_CACHE = _GRAMMAR.with_suffix('.lark.cache')

@@ -1,6 +1,6 @@
 
 from lark.visitors import Transformer, Discard
-from .TypeFactory import dataclass_factory
+from .type_factory import dataclass_factory
 
 
 class DataClassTransformer(Transformer):

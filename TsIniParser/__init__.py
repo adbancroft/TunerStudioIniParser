@@ -1,3 +1,3 @@
-from TsIniParser.TunerStudioIniParser import TsIniParser
-from .dataclasses.DataClassTransformer import DataClassTransformer
-from .dataclasses.TsIniFile import *
+from .ts_ini_parser import TsIniParser
+from .dataclasses.data_class_transformer import DataClassTransformer
+from .dataclasses.ts_ini_file import *

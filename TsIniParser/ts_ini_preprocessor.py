@@ -1,7 +1,7 @@
 from pathlib import Path
 from lark import Lark, Transformer, Tree
 from more_itertools import first_true
-from TsIniParser.TextIoLexer import TextIoLexer
+from .text_io_lexer import TextIoLexer
 
 _GRAMMAR = Path(__file__).parent / 'grammars' / 'pre_processor.lark'
 _GRAMMAR_CACHE = _GRAMMAR.with_suffix('.lark.cache')
