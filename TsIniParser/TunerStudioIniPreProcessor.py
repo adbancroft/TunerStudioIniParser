@@ -1,6 +1,6 @@
+from pathlib import Path
 from lark import Lark, Transformer, Tree
 from more_itertools import first_true
-from pathlib import Path
 from TsIniParser.TextIoLexer import TextIoLexer
 
 _GRAMMAR = Path(__file__).parent / 'grammars' / 'pre_processor.lark'
@@ -16,7 +16,8 @@ class TsIniPreProcessor:
     pre-processing directives.
     """
 
-    class pp_transformer(Transformer):
+    class PreProcessorTransformer(Transformer):
+        # pylint: disable=no-self-use
         """Transformer for the preprocessor grammar.
 
         Will apply #if directives to include/exclude lines from the
@@ -24,6 +25,7 @@ class TsIniPreProcessor:
         """
 
         def __init__(self, symbol_table):
+            super().__init__()
             self._symbol_table = symbol_table
 
         def pp_conditional(self, children):
@@ -44,29 +46,23 @@ class TsIniPreProcessor:
             # i.e. the if condition is already evaluated.
             if children[0]:
                 return children[1]
-            return
-
-        def _ifndef_line(self, children):
-            """#ifndef directive"""
-            return [not children[0]]
+            return None
 
         def elif_part(self, children):
             """Process elif_part tree object"""
             if children[0]:
                 return children[1]
-            return
+            return None
 
         def set(self, children):
             """Process #set directive"""
             self._symbol_table[children[0].value] = True
-            return
 
         def unset(self, children):
             """Process #unset directive"""
             identifier = children[0].value
             if identifier in self._symbol_table.keys():
                 del self._symbol_table[identifier]
-            return
 
         def symbol(self, children):
             """ Process a symbol test"""
@@ -78,13 +74,14 @@ class TsIniPreProcessor:
             Currently we only support (symbol | !symbol)
             """
             if len(children) > 1:  # Negated
-                return not (children[1].value in self._symbol_table.keys())
+                return not children[1].value in self._symbol_table.keys()
             return children[0].value in self._symbol_table.keys()
 
     def __init__(self):
         self._symbol_table = {}
+        pp_transformer = TsIniPreProcessor.PreProcessorTransformer(self._symbol_table)
         self.processor = Lark.open(_GRAMMAR, parser='lalr', debug=True,
-                                   transformer=TsIniPreProcessor.pp_transformer(self._symbol_table),  # noqa: E501
+                                   transformer=pp_transformer,
                                    cache=str(_GRAMMAR_CACHE))
         self.processor.parser.lexer = TextIoLexer(self.processor.parser.lexer)
 
@@ -99,5 +96,5 @@ class TsIniPreProcessor:
 
         self._symbol_table[symbol] = value
 
-    def pre_process(self, input, on_error=None) -> Tree:
-        return self.processor.parse(input, on_error=on_error)
+    def pre_process(self, parse_source, on_error=None) -> Tree:
+        return self.processor.parse(parse_source, on_error=on_error)

@@ -1,7 +1,7 @@
+from pathlib import Path
+from lark import Lark, Tree, Transformer
 from .TunerStudioIniPreProcessor import TsIniPreProcessor
 from .TreeLexer import TreeLexerAdapter
-from lark import Lark, Tree, Transformer
-from pathlib import Path
 
 _GRAMMAR = Path(__file__).parent / 'grammars' / 'ts_ini.lark'
 _GRAMMAR_CACHE = _GRAMMAR.with_suffix('.lark.cache')
@@ -18,7 +18,9 @@ class TsIniParser:
      All identifiers must be cnames (no spaces, quotes etc.)
     """
 
-    class transform_terminals(Transformer):
+    class TransformTerminals(Transformer):
+        # pylint: disable=invalid-name,no-self-use
+
         """Process terminal tokens"""
         def KEY(self, token):
             return token.update(value=token.value.rstrip(' ='))
@@ -31,6 +33,7 @@ class TsIniParser:
 
         def _extract_key(self, token):
             return token.update(value=token.value.split('=')[0].strip(' \t'))
+
         KVP_SCALAR_TAG = _extract_key
         KVP_BITS_TAG = _extract_key
         KVP_ARRAY_TAG = _extract_key
@@ -42,7 +45,7 @@ class TsIniParser:
         self._ts_parser = Lark.open(_GRAMMAR,
                                     parser='lalr', debug=True,
                                     cache=str(_GRAMMAR_CACHE),
-                                    transformer=TsIniParser.transform_terminals())
+                                    transformer=TsIniParser.TransformTerminals())
         # Adapt the parser lexer to consume the preprocessor output (a Tree)
         self._ts_parser.parser.lexer = TreeLexerAdapter(self._ts_parser.parser.lexer)
 
@@ -57,9 +60,9 @@ class TsIniParser:
 
         self._pre_processor.define(symbol, value)
 
-    def on_error(self, e):
+    def on_error(self, error_data):
         pass
 
-    def parse(self, input, on_error=None) -> Tree:
-        preprocessed = self._pre_processor.pre_process(input, on_error=self.on_error)
+    def parse(self, parse_source) -> Tree:
+        preprocessed = self._pre_processor.pre_process(parse_source, on_error=self.on_error)
         return self._ts_parser.parse(preprocessed, on_error=self.on_error)

@@ -1,5 +1,5 @@
-import TsIniFile
 from typing import Dict, Any
+from . import TsIniFile
 
 
 # Type tag to type mapping
@@ -20,7 +20,7 @@ _RULE_TYPEMAP = {
         'curve': TsIniFile.Curve,
         'curveeditor_section': TsIniFile.DictSection[TsIniFile.Curve],
         'generic_section': TsIniFile.Section,
-        'start': TsIniFile,
+        'start': TsIniFile.TsIniFile,
     }
 
 
@@ -29,12 +29,12 @@ def dataclass_factory(type_tag: str, dict_data: Dict[str, Any]):
     """ A factory that converts a type marker and dictionary into
     a class instance"""
 
-    if 'kvp_array_line' == type_tag:
+    if type_tag == 'kvp_array_line':
         if 'dim1d' in dict_data:
-            type = TsIniFile.Array1dVariable
+            class_type = TsIniFile.Array1dVariable
         else:
-            type = TsIniFile.Array2dVariable
+            class_type = TsIniFile.Array2dVariable
     else:
-        type = _RULE_TYPEMAP[type_tag]
+        class_type = _RULE_TYPEMAP[type_tag]
 
-    return type(**dict_data)
+    return class_type(**dict_data)

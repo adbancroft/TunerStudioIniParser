@@ -1,13 +1,14 @@
 from dataclasses import InitVar, dataclass
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from typing import Dict, Any, List, TypeVar, Generic
 from .dataclass_utils import from_existing
 
 
-class is_keyed(ABC):
-    @abstractmethod
+class HasKey(ABC):
+    # pylint: disable=too-few-public-methods
+    @abstractproperty
     def key(self):
-        pass
+        raise NotImplementedError()
 
 
 DictItem = TypeVar('DictItem')
@@ -22,7 +23,7 @@ class DictBase(Generic[DictItem], Dict[Any, DictItem]):
 
 
 @dataclass
-class AbstractSection(is_keyed):
+class AbstractSection(HasKey):
     name: str
 
     @property
@@ -36,6 +37,7 @@ class AbstractSection(is_keyed):
 
 @dataclass
 class DictSection(AbstractSection, DictBase[DictItem]):
+    # pylint: disable=too-many-ancestors
 
     def is_empty(self):
         return len(self) == 0
@@ -50,17 +52,17 @@ class Section(AbstractSection):
 
 
 @dataclass
-class KeyValuePair(is_keyed):
+class KeyValuePair(HasKey):
     key_name: str
     values: list
 
     @property
     def key(self):
-        return self.kvp_key
+        return self.key_name
 
 
 @dataclass
-class Variable(is_keyed):
+class Variable(HasKey):
     name: str
     unknown_values: list = None
 
@@ -108,7 +110,7 @@ class StringVariable(Variable):
 
 
 @dataclass
-class Page(is_keyed, DictBase[Variable]):
+class Page(HasKey, DictBase[Variable]):
     page_num: int
 
     @property
@@ -129,7 +131,8 @@ class AxisBin:
 
 
 @dataclass
-class Table(is_keyed):
+class Table(HasKey):
+    # pylint: disable=too-many-instance-attributes
     table_id: str
     map3d_id: str
     title: str
@@ -167,7 +170,8 @@ class Axis:
 
 
 @dataclass
-class Curve(is_keyed):
+class Curve(HasKey):
+    # pylint: disable=too-many-instance-attributes
     curve_id: str
     name: str
     columnlabels: list
@@ -193,8 +197,8 @@ class CurveArray1dVariable(Array1dVariable):
 class TsIniFile(DictBase[AbstractSection]):
     file_header: List
 
-    def __post_init__(self, dict: Dict[Any, AbstractSection]):
-        super().__post_init__(dict)
+    def __post_init__(self, dict_data: Dict[Any, AbstractSection]):
+        super().__post_init__(dict_data)
         self._wire_constants()
 
     def _wire_constants(self):
@@ -204,14 +208,14 @@ class TsIniFile(DictBase[AbstractSection]):
             self._wire_curve(table)
 
     def _wire_table(self, table):
-        def set_bin_constant(bin, page, type):
-            original_variable = page[bin.constant_ref]
-            if not isinstance(original_variable, type):
-                new_instance = from_existing(original_variable, type, {'table': table})
-                page[bin.constant_ref] = new_instance
+        def set_bin_constant(bin_field, page, expected_type):
+            original_variable = page[bin_field.constant_ref]
+            if not isinstance(original_variable, expected_type):
+                new_instance = from_existing(original_variable, expected_type, {'table': table})
+                page[bin_field.constant_ref] = new_instance
             else:
                 new_instance = original_variable
-            bin.constant_ref = new_instance
+            bin_field.constant_ref = new_instance
 
         page = self['Constants'][table.page_num]
 
@@ -219,29 +223,29 @@ class TsIniFile(DictBase[AbstractSection]):
         set_bin_constant(table.ybins, page, TableArray1dVariable)
         set_bin_constant(table.zbins, page, TableArray2dVariable)
 
-    def _find_constant_nothrow(self, name, type):
+    def _find_constant_nothrow(self, name, expected_type):
         for page in self['Constants'].values():
             constant = page.get(name)
-            if constant and isinstance(constant, type):
+            if constant and isinstance(constant, expected_type):
                 return constant
         return None
 
-    def _find_constant(self, name, type):
-        constant = self._find_constant_nothrow(name, type)
+    def _find_constant(self, name, expected_type):
+        constant = self._find_constant_nothrow(name, expected_type)
         if not constant:
             raise KeyError(name)
         return constant
 
-    def _find_pcvariable_nothrow(self, name, type):
+    def _find_pcvariable_nothrow(self, name, expected_type):
         variable = self['PcVariables'].get(name)
-        return variable if isinstance(variable, type) else None
+        return variable if isinstance(variable, expected_type) else None
 
-    def _find_named_variable_nothrow(self, name, type):
-        constant = self._find_constant_nothrow(name, type)
-        return constant if constant else self._find_pcvariable_nothrow(name, type)
+    def _find_named_variable_nothrow(self, name, expected_type):
+        constant = self._find_constant_nothrow(name, expected_type)
+        return constant if constant else self._find_pcvariable_nothrow(name, expected_type)
 
-    def _find_named_variable(self, name, type):
-        constant = self._find_named_variable_nothrow(name, type)
+    def _find_named_variable(self, name, expected_type):
+        constant = self._find_named_variable_nothrow(name, expected_type)
         if not constant:
             raise KeyError(name)
         return constant
@@ -260,22 +264,22 @@ class TsIniFile(DictBase[AbstractSection]):
         return False
 
     def _replace_named_variable(self, name, original_instance, new_instance):
-        if not self._replace_constant(name, original_instance, new_instance):
-            return self._replace_variable(name, original_instance, new_instance)
+        return self._replace_constant(name, original_instance, new_instance) or\
+               self._replace_variable(name, original_instance, new_instance)
 
     def _wire_curve(self, curve):
-        def set_bin_constant(bin):
-            original_variable = self._find_named_variable(bin.constant_ref, Array1dVariable)  # noqa: E501
+        def set_bin_constant(bin_field):
+            original_variable = self._find_named_variable(bin_field.constant_ref, Array1dVariable)  # noqa: E501
             if not isinstance(original_variable, CurveArray1dVariable):
                 new_instance = from_existing(original_variable, CurveArray1dVariable, {'curve': curve})  # noqa: E501
-                self._replace_named_variable(bin.constant_ref, original_variable, new_instance)  # noqa: E501
+                self._replace_named_variable(bin_field.constant_ref, original_variable, new_instance)  # noqa: E501
             else:
                 new_instance = original_variable
-            bin.constant_ref = new_instance
+            bin_field.constant_ref = new_instance
 
         set_bin_constant(curve.xbins)
         if isinstance(curve.ybins, list):
-            for bin in curve.ybins:
-                set_bin_constant(bin)
+            for ybin in curve.ybins:
+                set_bin_constant(ybin)
         else:
             set_bin_constant(curve.ybins)

@@ -1,5 +1,7 @@
-from lark.lexer import Lexer, Token, LineCounter
 from contextlib import suppress
+from typing import Iterable
+from lark.lexer import Lexer, Token, LineCounter
+from lark import Tree
 
 
 class TokenLexerAdapter(Lexer):
@@ -11,6 +13,7 @@ class TokenLexerAdapter(Lexer):
         self._cur_input_token = None
 
     def lex(self, lexer_state, parser_state):
+        # pylint: disable=stop-iteration-return
         while self._feed_next_input_token(lexer_state):
             with suppress(StopIteration):
                 inner_tokenizer = self._inner_lexer.lex(lexer_state,
@@ -18,8 +21,8 @@ class TokenLexerAdapter(Lexer):
                 while True:
                     yield self._adjust_token_pos(next(inner_tokenizer))
 
-    def make_lexer_state(self, tokens):
-        self._input_tokens = tokens
+    def make_lexer_state(self, text: Iterable[Token]):
+        self._input_tokens = text
         return self._inner_lexer.make_lexer_state("")
 
     def _feed_next_input_token(self, lexer_state):
@@ -43,12 +46,6 @@ class TokenLexerAdapter(Lexer):
 class TreeLexerAdapter(TokenLexerAdapter):
     __future_interface__ = True
 
-    def __init__(self, inner_lexer):
-        super().__init__(inner_lexer)
-
-    def lex(self, lexer_state, parser_state):
-        return super().lex(lexer_state, parser_state)
-
-    def make_lexer_state(self, tree):
+    def make_lexer_state(self, text: Tree):
         return super().make_lexer_state(
-                            tree.scan_values(lambda v: isinstance(v, Token)))
+                            text.scan_values(lambda v: isinstance(v, Token)))
