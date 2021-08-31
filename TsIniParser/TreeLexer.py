@@ -31,8 +31,8 @@ class TokenLexerAdapter(Lexer):
             return False
 
     def _adjust_token_pos(self, token):
-        token.pos_in_stream = token.pos_in_stream + self._cur_input_token.pos_in_stream
-        token.end_pos = token.end_pos + self._cur_input_token.pos_in_stream
+        token.start_pos = token.start_pos + self._cur_input_token.start_pos
+        token.end_pos = token.end_pos + self._cur_input_token.start_pos
         token.column = token.column + self._cur_input_token.column - 1
         token.end_column = token.end_column + self._cur_input_token.column - 1
         return token                

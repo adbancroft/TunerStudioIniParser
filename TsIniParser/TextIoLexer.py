@@ -25,7 +25,7 @@ class TextIoLexer(Lexer):
         return lexer_state.text!=''
 
     def _adjust_token_pos(self, token):
-        token.pos_in_stream = token.pos_in_stream + self._char_offset
+        token.start_pos = token.start_pos + self._char_offset
         token.end_pos = token.end_pos + self._char_offset
         return token          
 

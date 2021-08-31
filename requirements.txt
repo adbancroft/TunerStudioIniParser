@@ -1,0 +1,2 @@
+more-itertools==8.8.0
+lark-parser==0.12.0
