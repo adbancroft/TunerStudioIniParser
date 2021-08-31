@@ -15,7 +15,7 @@ class test_parser(unittest.TestCase):
         tree = test_utils.parse_file(test_utils.get_test_ini_path(Path("Test_Files") /  "speeduino.ini"), parser)
         self.assertIsNotNone(tree)
         self.assertEqual(2, len(tree.children))
-        self.assertEqual(22, tree.children[1].children)
+        self.assertEqual(22, len(tree.children[1].children))
 
     def test_allfiles_noexceptions(self):
         # Test all known INI files
