@@ -1,7 +1,7 @@
 from TsIniParser.dataclasses.TsIniFile import Array1dVariable
 import unittest
 from TsIniParser import TsIniParser, DataClassTransformer
-import test_utils
+from . import test_utils
 from pathlib import Path
 
 
@@ -21,6 +21,10 @@ class test_dataclasstransformer(unittest.TestCase):
         # Code override check
         self.assertEqual(self.subject['Constants'][9]['caninput_sel0a'].unknown_values[4][0], 'code_override')
         self.assertIsInstance(self.subject['Constants'][9]['caninput_sel0a'].unknown_values[4][1], Array1dVariable)
+
+        self.assertEqual(22, len(self.subject))
+        self.assertEqual(14, len(self.subject['Constants']))
+        self.assertEqual('U08', self.subject['Constants'][5]['afrTable'].data_type)
 
         # Check the inter section references were plumbed in
         self.assertEqual(self.subject['Constants'][7]['rpmBinsBoost'], self.subject['TableEditor']['boostTbl'].xbins.constant_ref)

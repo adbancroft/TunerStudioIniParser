@@ -1,7 +1,7 @@
 import unittest
 from logging import DEBUG, StreamHandler, getLogger
-from TsIniParser import TsIniParser, DataClassTransformer
-import test_utils
+from TsIniParser import TsIniParser
+from . import test_utils
 from pathlib import Path
 
 from lark import logger
