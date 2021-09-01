@@ -1,12 +1,14 @@
 from dataclasses import InitVar, dataclass
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from typing import Dict, Any, List, TypeVar, Generic
 from .dataclass_utils import from_existing
 
 
 class HasKey(ABC):
     # pylint: disable=too-few-public-methods
-    @abstractproperty
+
+    @property
+    @abstractmethod
     def key(self):
         raise NotImplementedError()
 
