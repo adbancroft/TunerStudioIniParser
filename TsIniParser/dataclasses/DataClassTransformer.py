@@ -29,11 +29,12 @@ class DataClassTransformer(Transformer):
 
         def collapse_variable_refs(children):
             def is_variable_ref(item):
-                return isinstance(item, tuple) and item[0]==self.__class__._var_tag
+                return isinstance(item, tuple) and item[0] == self._var_tag
             
             for c in children:
                 if is_variable_ref(c):
-                    yield c[1]
+                    for item in c[1]:
+                        yield item
                 else:
                     yield c
 
