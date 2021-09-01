@@ -1,0 +1,29 @@
+name: lint-tsiniparser
+
+env:
+  LIBRARY_SOURCE_FOLDER: ./TsIniParser
+
+on: 
+  push:
+    paths:
+      - ${{env.LIBRARY_SOURCE_FOLDER}}/**.py
+
+jobs:
+  lint-tsiniparser:
+    name: lint-tsiniparser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Flake8
+        uses: julianwachholz/flake8-action@v2
+        with:
+          checkName: "Python-Lint"
+          path: .
+          config: "./tox.ini"
+      - name: Pylint
+        uses: fylein/python-pylint-github-action@v1
+        with:
+          args: pip3 install -r ./requirements.txt && pylint --rcfile=./tox.ini ${{env.LIBRARY_SOURCE_FOLDER}}
