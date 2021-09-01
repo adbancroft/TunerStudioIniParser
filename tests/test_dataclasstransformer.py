@@ -1,7 +1,13 @@
-from TsIniParser.dataclasses.TsIniFile import Array1dVariable
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import unittest
-from TsIniParser import TsIniParser, DataClassTransformer
-from . import test_utils
+from TsIniParser import TsIniParser, DataClassTransformer, Array1dVariable
+try:
+    from test_utils import parse_file, get_test_ini_path
+except:
+    from .test_utils import parse_file, get_test_ini_path
 from pathlib import Path
 
 
@@ -10,7 +16,7 @@ class test_dataclasstransformer(unittest.TestCase):
     def setUp(self):
         parser = TsIniParser()
         path = Path("Test_Files") / "speeduino.ini"
-        tree = test_utils.parse_file(test_utils.get_test_ini_path(path), parser)
+        tree = parse_file(get_test_ini_path(path), parser)
         self.subject = DataClassTransformer().transform(tree)
 
     def test_speeduino(self):
@@ -37,3 +43,20 @@ class test_dataclasstransformer(unittest.TestCase):
     def test_variablerefs_replacedinline(self):
         self.assertEqual(len(self.subject['PcVariables']['algorithmNames'].unknown_values), 8)
         self.assertEqual(len(self.subject['Constants'][13]['outputPin0'].unknown_values), 130)
+        tree = parse_file(get_test_ini_path(Path("Test_Files") / "speeduino.ini"), parser)
+        result = DataClassTransformer().transform(tree)
+        self.assertEqual(22, len(result))
+        self.assertEqual(14, len(result['Constants']))
+        self.assertEqual('U08', result['Constants'][5]['afrTable'].data_type)
+
+        # Check the inter section references were plumbed in
+        self.assertEqual(result['Constants'][7]['rpmBinsBoost'], result['TableEditor']['boostTbl'].xbins.constant_ref)
+        self.assertEqual(result['Constants'][7]['tpsBinsBoost'], result['TableEditor']['boostTbl'].ybins.constant_ref)
+        self.assertEqual(result['Constants'][7]['boostTable'], result['TableEditor']['boostTbl'].zbins.constant_ref)
+
+        self.assertEqual(result['Constants'][4]['taeBins'], result['CurveEditor']['time_accel_tpsdot_curve'].xbins.constant_ref)
+        self.assertEqual(result['PcVariables']['wueAFR'], result['CurveEditor']['warmup_afr_curve'].ybins.constant_ref)
+
+
+if __name__ == '__main__':
+    unittest.main()
