@@ -1,1 +1,1 @@
-include TsIniParser/*.lark.cache
+include ts_ini_parser/*.lark.cache

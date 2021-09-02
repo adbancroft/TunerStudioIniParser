@@ -1,17 +1,16 @@
-import sys
-from TsIniParser import TsIniParser
 from logging import DEBUG
 from lark import logger
 logger.setLevel(DEBUG)
 
 if __name__ == '__main__':
 
-    from TsIniParser import TsIniParser, DataClassTransformer
+    from ts_ini_parser import TsIniParser, DataClassTransformer
+    import sys
 
     parser = TsIniParser()
     parser.define('LAMBDA', True)
     parser.define('ALPHA_N', True)
-    with open(sys.argv[1], 'r') as file:  
+    with open(sys.argv[1], 'r') as file:
         tree = parser.parse(file)
         print(len(tree.children))
         dataclass = DataClassTransformer().transform(tree)

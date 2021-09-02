@@ -1,0 +1,21 @@
+name: unittest-parser
+
+env:
+  LIBRARY_SOURCE_FOLDER: ./ts_ini_parser
+
+on: 
+  push:
+    paths:
+      - ${{env.LIBRARY_SOURCE_FOLDER}}/**.lark
+
+jobs:
+  unittest-parser:
+    name: unittest-parser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: python -m pip install -r ./requirements.txt
+      - run: python -m unittest tests.test_parser

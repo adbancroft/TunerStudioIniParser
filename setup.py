@@ -15,10 +15,10 @@ setup(name='TsIniParser',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
         'Topic :: Text Processing',
-      ],      
+      ],
       license='LGPL',
-      packages=['TsIniParser', 'TsIniParser.dataclasses'],
-      package_data={'TsIniParser': ['grammars/*.lark', 'grammars/*.lark.cache']},
+      packages=['ts_ini_parser', 'ts_ini_parser.dataclasses'],
+      package_data={'ts_ini_parser': ['grammars/*.lark', 'grammars/*.lark.cache']},
       install_requires=[
           'lark-parser',
           'more-itertools'

@@ -1,15 +1,18 @@
 
 from lark.visitors import Transformer, Discard
-from .TypeFactory import dataclass_factory
+from .type_factory import dataclass_factory
+
 
 class DataClassTransformer(Transformer):
 
     def __init__(self):
+        super().__init__()
         self._factory = dataclass_factory
         self._symbols = {}
 
     # ATM we only have one rule that needs this transform
     def help_line(self, children):
+        # pylint: disable=no-self-use
         return children
 
     # ================== Generic rule processing =====================
@@ -23,20 +26,20 @@ class DataClassTransformer(Transformer):
     def _transform_children(self, children):
         """We always inline variable references - they need to appear in the original
         position of the variable reference, not as a nested item
-        
+
         This has to happen when processing the rule that contains the
         variable_ref - we need to embed the child item not the child list"""
 
         def collapse_variable_refs(children):
             def is_variable_ref(item):
                 return isinstance(item, tuple) and item[0] == self._var_tag
-            
-            for c in children:
-                if is_variable_ref(c):
-                    for item in c[1]:
+
+            for child in children:
+                if is_variable_ref(child):
+                    for item in child[1]:
                         yield item
                 else:
-                    yield c
+                    yield child
 
         return collapse_variable_refs(super()._transform_children(children))
 
@@ -114,24 +117,24 @@ class DataClassTransformer(Transformer):
         'page_num',
         'string_literal',
         'name',
-    ]    
+    ]
 
     # Applies to all rules not explicitly processed
     def __default__(self, data, children, meta):
-        if data in self.__class__._dict_from_child_types:
+        if data in self._dict_from_child_types:
             return ('dict_data', [(i.key, i) for i in children])
 
-        if data in self.__class__._convert_to_type:
+        if data in self._convert_to_type:
             return self._to_type(data, children)
 
-        if data in self.__class__._hoist_only_child:
-            if len(children)>1:
+        if data in self._hoist_only_child:
+            if len(children) > 1:
                 raise ValueError()
             return (data, children[0] if children else None)
-            
+
         # Default rule action is to transform to a tuple
-        # 
-        # These will typically go on to be dictionary entries 
+        #
+        # These will typically go on to be dictionary entries
         return (data, children)
 
     def _to_type(self, data, children):
@@ -162,5 +165,5 @@ class DataClassTransformer(Transformer):
         key = children[0]
         if key in self._symbols:
             # This is inlined into the parent tree children by other code
-            return (self.__class__._var_tag, self._symbols[key])
+            return (self._var_tag, self._symbols[key])
         raise Discard
