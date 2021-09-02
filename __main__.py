@@ -4,7 +4,7 @@ logger.setLevel(DEBUG)
 
 if __name__ == '__main__':
 
-    from TsIniParser import TsIniParser, DataClassTransformer
+    from ts_ini_parser import TsIniParser, DataClassTransformer
     import sys
 
     parser = TsIniParser()

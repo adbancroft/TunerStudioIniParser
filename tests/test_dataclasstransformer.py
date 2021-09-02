@@ -3,8 +3,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import unittest
-import more_itertools
-from TsIniParser import *
+from ts_ini_parser import *
 try:
     from test_utils import parse_file, get_test_ini_path
 except:

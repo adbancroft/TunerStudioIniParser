@@ -1,7 +1,7 @@
 name: lint-tsiniparser
 
 env:
-  LIBRARY_SOURCE_FOLDER: ./TsIniParser
+  LIBRARY_SOURCE_FOLDER: ./ts_ini_parser
 
 on: 
   push:

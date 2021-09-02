@@ -2,7 +2,7 @@
  Example:
 
     import sys
-    from TsIniParser import TsIniParser, DataClassTransformer
+    from ts_ini_parser import TsIniParser, DataClassTransformer
     
     parser = TsIniParser()
     parser.define('LAMBDA', True)

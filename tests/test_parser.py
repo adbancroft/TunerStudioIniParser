@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import unittest
 from logging import DEBUG, StreamHandler, getLogger
-from TsIniParser import TsIniParser
+from ts_ini_parser import TsIniParser
 try:
     from test_utils import parse_file, get_test_ini_path
 except:
