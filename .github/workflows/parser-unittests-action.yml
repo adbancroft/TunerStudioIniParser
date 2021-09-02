@@ -6,8 +6,10 @@ env:
 on: 
   push:
     paths:
-      - ${{env.LIBRARY_SOURCE_FOLDER}}/**.lark
-
+      - ./ts_ini_parser/**.lark
+    pull_request:
+    workflow_dispatch:
+    
 jobs:
   unittest-parser:
     name: unittest-parser
