@@ -8,6 +8,7 @@ on:
     paths:
       - ./ts_ini_parser/**.py
     pull_request:
+    workflow_dispatch:
     
 jobs:
   lint-tsiniparser:
