@@ -15,6 +15,11 @@ class DataClassTransformer(Transformer):
         # pylint: disable=no-self-use
         return children
 
+    # ATM we only have one rule that needs this transform
+    def bit_size(self, children):
+        # pylint: disable=no-self-use
+        return ('bit_size', self._to_type('bit_size', children))
+
     # ================== Generic rule processing =====================
 
     # Hoist all tokens into their parent node

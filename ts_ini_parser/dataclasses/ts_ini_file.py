@@ -79,8 +79,14 @@ class TypedVariable(Variable):
 
 
 @dataclass
+class BitSize:
+    start_bit: int
+    length: int
+
+
+@dataclass
 class BitVariable(TypedVariable):
-    bit_size: list = None
+    bit_size: BitSize = None
     offset: int = None
 
 
