@@ -8,6 +8,7 @@ on:
   push:
     paths:
       - ${{env.LIBRARY_SOURCE_FOLDER}}/dataclasses/**
+  pull_request:
 
 jobs:
   unittest-dataclass-transformer:

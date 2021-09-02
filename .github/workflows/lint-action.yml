@@ -7,7 +7,8 @@ on:
   push:
     paths:
       - ${{env.LIBRARY_SOURCE_FOLDER}}/**.py
-
+    pull_request:
+    
 jobs:
   lint-tsiniparser:
     name: lint-tsiniparser
