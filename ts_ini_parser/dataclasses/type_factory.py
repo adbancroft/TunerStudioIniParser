@@ -21,6 +21,7 @@ _RULE_TYPEMAP = {
         'curveeditor_section': ts_ini_file.DictSection[ts_ini_file.Curve],
         'generic_section': ts_ini_file.Section,
         'start': ts_ini_file.TsIniFile,
+        'bit_size': ts_ini_file.BitSize,
     }
 
 

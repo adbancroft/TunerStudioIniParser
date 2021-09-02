@@ -23,26 +23,6 @@ class DataClassTransformer(Transformer):
             return token.value.strip('"')
         return token.value
 
-    def _transform_children(self, children):
-        """We always inline variable references - they need to appear in the original
-        position of the variable reference, not as a nested item
-
-        This has to happen when processing the rule that contains the
-        variable_ref - we need to embed the child item not the child list"""
-
-        def collapse_variable_refs(children):
-            def is_variable_ref(item):
-                return isinstance(item, tuple) and item[0] == self._var_tag
-
-            for child in children:
-                if is_variable_ref(child):
-                    for item in child[1]:
-                        yield item
-                else:
-                    yield child
-
-        return collapse_variable_refs(super()._transform_children(children))
-
     # ================== Typed rule processing =====================
     # Lot's of rules need the same transform, so drive the processing by
     # look up.
@@ -117,6 +97,7 @@ class DataClassTransformer(Transformer):
         'page_num',
         'string_literal',
         'name',
+        'variable_ref',
     ]
 
     # Applies to all rules not explicitly processed
@@ -160,10 +141,23 @@ class DataClassTransformer(Transformer):
 
     _var_tag = 'variable_ref'
 
-    def variable_ref(self, children):
-        # Process a variable reference by returning the symbol value
-        key = children[0]
-        if key in self._symbols:
-            # This is inlined into the parent tree children by other code
-            return (self._var_tag, self._symbols[key])
-        raise Discard
+    def _transform_children(self, children):
+        """We always inline variable references - they need to appear in the original
+        position of the variable reference, not as a nested item
+
+        This has to happen when processing the rule that contains the
+        variable_ref - we need to embed the child item not the child list"""
+
+        def collapse_variable_refs(children):
+            def is_variable_ref(item):
+                return isinstance(item, tuple) and item[0] == self._var_tag
+
+            for child in children:
+                if is_variable_ref(child):
+                    if child[1] in self._symbols:
+                        for item in self._symbols[child[1]]:
+                            yield item
+                else:
+                    yield child
+
+        return collapse_variable_refs(super()._transform_children(children))
