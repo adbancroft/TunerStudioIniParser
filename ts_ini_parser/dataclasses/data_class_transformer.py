@@ -155,8 +155,7 @@ class DataClassTransformer(Transformer):
             for child in children:
                 if is_variable_ref(child):
                     if child[1] in self._symbols:
-                        for item in self._symbols[child[1]]:
-                            yield item
+                        yield from self._symbols[child[1]]
                 else:
                     yield child
 
