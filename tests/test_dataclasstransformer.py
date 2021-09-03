@@ -1,14 +1,13 @@
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
+from pathlib import Path
 import unittest
+import sys
+sys.path.insert(0, Path(__file__).parent.absolute())
+
 from ts_ini_parser import *
 try:
     from test_utils import parse_file, get_test_ini_path
 except:
     from .test_utils import parse_file, get_test_ini_path
-from pathlib import Path
 
 
 class test_dataclasstransformer(unittest.TestCase):
@@ -35,11 +34,14 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertEqual(9, len(page))
 
         table2d = page['vvtTable']
-        self.assertIsInstance(table2d, TableArray2dVariable)
+        self.assertIsInstance(table2d, Array2dVariable)
+        self.assertIsInstance(table2d.dim2d, MatrixDimensions)        
+        self.assertEqual('U08', table2d.data_type)
 
-        # Test a few types
-        self.assertEquals('U08', self.subject['Constants'][5]['afrTable'].data_type)
-
+        bit_field = section[1]['aeMode']
+        self.assertIsInstance(bit_field, BitVariable)
+        self.assertIsInstance(bit_field.bit_size, BitSize)        
+        self.assertEqual(4, len(bit_field.unknown_values))
 
     def test_variablerefs_replacedinline(self):
         self.assertEqual(len(self.subject['PcVariables']['algorithmNames'].unknown_values), 8)

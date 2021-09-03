@@ -81,7 +81,7 @@ class TypedVariable(Variable):
 @dataclass
 class BitSize:
     start_bit: int
-    length: int
+    bit_length: int
 
 
 @dataclass
@@ -105,11 +105,14 @@ class ScalarVariable(TypedVariable):
 class Array1dVariable(ScalarVariable):
     dim1d: int = 0
 
+@dataclass
+class MatrixDimensions:
+    xsize: int
+    ysize: int
 
 @dataclass
 class Array2dVariable(ScalarVariable):
-    dim2d: list = None
-
+    dim2d: MatrixDimensions = None
 
 @dataclass
 class StringVariable(Variable):
