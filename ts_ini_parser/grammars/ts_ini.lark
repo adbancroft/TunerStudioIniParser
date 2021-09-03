@@ -146,9 +146,12 @@ KVP_STRING_TAG  : KEY WS_INLINE? "string"i
 	length     : INT
 
 	dim1d       : "[" INT "]" 
-	dim2d       : "[" INT "x" INT "]"
-	bit_size    : "[" start_bit":" length "]"
+	dim2d       : "[" xsize "x" ysize "]"
+	xsize       : INT
+	ysize       : INT
+	bit_size    : "[" start_bit ":" bit_length "]"
 	start_bit   : INT
+	bit_length  : INT
 	data_type   : DATA_TYPE 
 	DATA_TYPE.2 : ("S" | "U" | "F") INT
 

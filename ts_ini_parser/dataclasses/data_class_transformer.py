@@ -56,6 +56,11 @@ class DataClassTransformer(Transformer):
         'curve',
     ]
 
+    _to_tuple_and_type = [
+        'bit_size',
+        'dim2d'
+    ]
+
     _hoist_only_child = [
         'table_id',
         'map3d_id',
@@ -98,6 +103,10 @@ class DataClassTransformer(Transformer):
         'string_literal',
         'name',
         'variable_ref',
+        'start_bit',
+        'bit_length',
+        'xsize',
+        'ysize',
     ]
 
     # Applies to all rules not explicitly processed
@@ -112,6 +121,9 @@ class DataClassTransformer(Transformer):
             if len(children) > 1:
                 raise ValueError()
             return (data, children[0] if children else None)
+
+        if data in self._to_tuple_and_type:
+            return (data, self._to_type(data, children))
 
         # Default rule action is to transform to a tuple
         #
