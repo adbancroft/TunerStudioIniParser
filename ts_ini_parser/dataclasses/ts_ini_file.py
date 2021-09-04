@@ -74,8 +74,39 @@ class Variable(HasKey):
 
 
 @dataclass
+class DataType:
+    type_name: str
+
+    _types = {
+        'U08': ('uint8_t', 1),
+        'S08': ('int8_t', 1),
+        'U16': ('uint16_t', 2),
+        'S16': ('int16_t', 2),
+        'U32': ('uint32_t', 4),
+        'S32': ('int32_t', 4),
+        'F32': ('float', 4),
+    }
+
+    @property
+    def width(self):
+        """Width of the type in bytes"""
+        return self._types[self.type_name][1]
+
+
+@dataclass
 class TypedVariable(Variable):
-    data_type: str = ''
+    type_name: InitVar[str] = None
+    data_type: DataType = None
+
+    def __post_init__(self, type_name: str):
+        if not self.data_type:
+            self.data_type = DataType(type_name=type_name)
+
+    @property
+    @abstractmethod
+    def size(self) -> int:
+        """Size of the variable in bytes"""
+        pass
 
 
 @dataclass
@@ -87,7 +118,11 @@ class BitSize:
 @dataclass
 class BitVariable(TypedVariable):
     bit_size: BitSize = None
-    offset: int = None
+    offset: int = 0
+
+    @property
+    def size(self) -> int:
+        return self.data_type.width
 
 
 @dataclass
@@ -98,12 +133,20 @@ class ScalarVariable(TypedVariable):
     low: float = None
     high: float = None
     digits: int = None
-    offset: int = None
+    offset: int = 0
+
+    @property
+    def size(self) -> int:
+        return self.data_type.width
 
 
 @dataclass
 class Array1dVariable(ScalarVariable):
     dim1d: int = 0
+
+    @property
+    def size(self) -> int:
+        return self.dim1d * self.data_type.width
 
 
 @dataclass
@@ -116,11 +159,19 @@ class MatrixDimensions:
 class Array2dVariable(ScalarVariable):
     dim2d: MatrixDimensions = None
 
+    @property
+    def size(self) -> int:
+        return self.dim2d.xsize * self.dim2d.ysize * self.data_type.width
+
 
 @dataclass
 class StringVariable(Variable):
     encoding: str = ''
     length: int = 0
+
+    @property
+    def size(self) -> int:
+        return self.length
 
 
 @dataclass
