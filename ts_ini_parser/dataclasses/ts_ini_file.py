@@ -106,7 +106,6 @@ class TypedVariable(Variable):
     @abstractmethod
     def size(self) -> int:
         """Size of the variable in bytes"""
-        pass
 
 
 @dataclass
