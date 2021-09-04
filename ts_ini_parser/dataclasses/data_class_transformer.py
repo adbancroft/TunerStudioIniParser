@@ -84,7 +84,7 @@ class DataClassTransformer(Transformer):
         'digits',
         'offset',
         'dim1d',
-        'data_type',
+        'type_name',
         'symbol',
         'xbins',
         'ybins',

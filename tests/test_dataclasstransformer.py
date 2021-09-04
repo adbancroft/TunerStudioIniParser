@@ -36,7 +36,7 @@ class test_dataclasstransformer(unittest.TestCase):
         table2d = page['vvtTable']
         self.assertIsInstance(table2d, Array2dVariable)
         self.assertIsInstance(table2d.dim2d, MatrixDimensions)        
-        self.assertEqual('U08', table2d.data_type)
+        self.assertEqual('U08', table2d.data_type.type_name)
 
         bit_field = section[1]['aeMode']
         self.assertIsInstance(bit_field, BitVariable)
@@ -51,6 +51,7 @@ class test_dataclasstransformer(unittest.TestCase):
     def test_interline_references(self):
         self.assertIsInstance(self.subject['Constants'][7]['rpmBinsBoost'], TableArray1dVariable)
         self.assertIs(self.subject['Constants'][7]['rpmBinsBoost'], self.subject['TableEditor']['boostTbl'].xbins.constant_ref)
+        self.assertEqual(self.subject['TableEditor']['boostTbl'].xbins.constant_ref.size, 8)
         self.assertIsInstance(self.subject['Constants'][7]['tpsBinsBoost'], TableArray1dVariable)
         self.assertIs(self.subject['Constants'][7]['tpsBinsBoost'], self.subject['TableEditor']['boostTbl'].ybins.constant_ref)
         self.assertIsInstance(self.subject['Constants'][7]['boostTable'], TableArray2dVariable)
@@ -60,6 +61,20 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertIs(self.subject['Constants'][4]['taeBins'], self.subject['CurveEditor']['time_accel_tpsdot_curve'].xbins.constant_ref)
         self.assertIsInstance(self.subject['PcVariables']['wueAFR'], CurveArray1dVariable)
         self.assertIs(self.subject['PcVariables']['wueAFR'], self.subject['CurveEditor']['warmup_afr_curve'].ybins.constant_ref)
+
+    def test_datatype(self):
+        data_type = self.subject['Constants'][1]['aseTaperTime'].data_type
+        self.assertIsInstance(data_type, DataType)
+        self.assertEqual('U08', data_type.type_name)
+        self.assertEqual(1, data_type.width)
+
+    def test_variable_size(self):
+        self.assertEqual(self.subject['PcVariables']['wueAFR'].size, 20)
+        self.assertEqual(self.subject['PcVariables']['algorithmLimits'].size, 16)
+        self.assertEqual(self.subject['Constants'][2]['veTable'].size, 256)
+        self.assertEqual(self.subject['Constants'][1]['vssPulsesPerKm'].size, 2)
+        self.assertEqual(self.subject['Constants'][1]['vssMode'].size, 1)
+
 
 if __name__ == '__main__':
     unittest.main()

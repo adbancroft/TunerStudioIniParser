@@ -108,15 +108,15 @@ kvp_line        : key_generic values _EOL
 	values      : _field_list
 	key_generic : KEY -> key_name 
 
-kvp_scalar_line : kvp_scalar "," data_type ("," offset)? ("," _variable_parameters)? _EOL
+kvp_scalar_line : kvp_scalar "," type_name ("," offset)? ("," _variable_parameters)? _EOL
 kvp_scalar      : KVP_SCALAR_TAG -> name 
 KVP_SCALAR_TAG  : KEY WS_INLINE? "scalar"i
 
-kvp_bits_line : kvp_bits "," data_type ("," offset)? "," bit_size ("," unknown_values)? _EOL
+kvp_bits_line : kvp_bits "," type_name ("," offset)? "," bit_size ("," unknown_values)? _EOL
 kvp_bits      : KVP_BITS_TAG -> name
 KVP_BITS_TAG  : KEY WS_INLINE? "bits"i
 
-kvp_array_line : kvp_array "," data_type ("," offset)? "," (dim1d|dim2d) ("," _variable_parameters)? _EOL
+kvp_array_line : kvp_array "," type_name ("," offset)? "," (dim1d|dim2d) ("," _variable_parameters)? _EOL
 kvp_array      : KVP_ARRAY_TAG -> name
 KVP_ARRAY_TAG  : KEY WS_INLINE? "array"i
 
@@ -152,7 +152,7 @@ KVP_STRING_TAG  : KEY WS_INLINE? "string"i
 	bit_size    : "[" start_bit ":" bit_length "]"
 	start_bit   : INT
 	bit_length  : INT
-	data_type   : DATA_TYPE 
+	type_name   : DATA_TYPE 
 	DATA_TYPE.2 : ("S" | "U" | "F") INT
 
 
