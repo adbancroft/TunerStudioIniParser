@@ -105,7 +105,7 @@ class DataClassTransformer(Transformer):
         'curve_gauge'
     ]
 
-    _to_child = [        
+    _to_child = [
         'string_literal',
     ]
 
@@ -115,6 +115,7 @@ class DataClassTransformer(Transformer):
 
     # Applies to all rules not explicitly processed
     def __default__(self, data, children, meta):
+        # pylint: disable=too-many-return-statements
         if data in self._dict_from_child_types:
             return ('dict_data', [(i.key, i) for i in children])
 
@@ -133,7 +134,7 @@ class DataClassTransformer(Transformer):
             if len(children) != 1:
                 raise ValueError()
             return children[0]
-                
+
         if data in self._to_children:
             return children
 

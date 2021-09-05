@@ -113,6 +113,7 @@ class BitVariable(TypedVariable):
 
 @dataclass(eq=False)
 class _ScalarCore:
+    # pylint: disable=too-many-instance-attributes
     units: Optional[str] = None
     scale: Optional[float] = None
     translate: Optional[float] = None
