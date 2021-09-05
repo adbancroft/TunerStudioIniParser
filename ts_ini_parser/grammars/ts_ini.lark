@@ -75,27 +75,24 @@ curve               : "curve"i "="  _curve_header _EOL _curve_line+
 	_curve_header   : curve_id "," curve_name ("," page_num)?
 		curve_id        : _identifier 
 		curve_name      : _string_literal -> name
-	_curve_line  : kvp_line | _pp_line | xbins | ybins | xaxis_limits | yaxis_limits | columnlabels | gauge | size | line_label
+	_curve_line  : kvp_line | _pp_line | xbins | ybins | xaxis_limits | yaxis_limits | column_labels | gauge | curve_dimensions | line_label
 		xaxis_limits : "xaxis"i "=" axis_limits _EOL 
 		yaxis_limits : "yaxis"i "=" axis_limits _EOL 
-		columnlabels : "columnlabel"i "=" _label_list _EOL
+		column_labels : "columnlabel"i "=" _label_list _EOL
 		gauge        : GAUGE_TAG  _identifier ("," unknown_values)? _EOL
 			GAUGE_TAG: "gauge"i WS_INLINE? "="
-		size         : "size"i "=" dim1 "," dim2 _EOL
-			dim1         : NUMBER
-			dim2         : NUMBER
+		curve_dimensions : "size"i "=" xsize "," ysize _EOL
 		line_label   : "lineLabel"i "=" _string_literal _EOL 
 		axis_limits : min "," max "," step
 			min          : (number_field | inline_expression | variable_ref) 
 			max          : (number_field | inline_expression | variable_ref) 
 			step         : (number_field | inline_expression | variable_ref) 
-		_label_list  : (_label_list ",")? label
-			label        : string_literal | inline_expression | variable_ref 
+		_label_list  : (_label_list ",")? string_literal
 
 // Any other section
 generic_section: "[" section_name "]" _EOL  lines
 lines:        _section_line*
-_section_line  : help_topic | kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | kvp_line | defaultvalue_line | _pp_line | text_line | message_format_line | gauge | size
+_section_line  : help_topic | kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | kvp_line | defaultvalue_line | _pp_line | text_line | message_format_line | gauge
 section_name   : SECTION_NAME -> name
 SECTION_NAME   : (LETTER | DIGIT) (LETTER | DIGIT | " ")* 
 

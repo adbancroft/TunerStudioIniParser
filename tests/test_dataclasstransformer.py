@@ -23,8 +23,9 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertIsInstance(self.subject, dict)
         self.assertEqual(22, len(self.subject))
 
+    def test_constants(self):
         section = self.subject['Constants']
-        self.assertIsInstance(section, AbstractSection)
+        self.assertIsInstance(section, ConstantsSection)
         self.assertIsInstance(section, dict)
         self.assertEqual(14, len(section))
 
@@ -42,6 +43,29 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertIsInstance(bit_field, BitVariable)
         self.assertIsInstance(bit_field.bit_size, BitSize)        
         self.assertEqual(4, len(bit_field.unknown_values))
+
+    def test_tableeditor(self):
+        section = self.subject['TableEditor']
+        self.assertIsInstance(section, DictSection)
+        self.assertIsInstance(section, dict)
+        self.assertEqual(19, len(section))
+
+        table = section['dwell_map']
+        self.assertIsInstance(table, Table)
+        self.assertSequenceEqual(table.xy_labels, ['RPM', 'Load: '])
+        self.assertSequenceEqual(table.updown_labels, ['HIGHER', 'LOWER'])
+
+    def test_curveeditor(self):
+        section = self.subject['CurveEditor']
+        self.assertIsInstance(section, DictSection)
+        self.assertIsInstance(section, dict)
+        self.assertEqual(31, len(section))
+
+        curve = section['idle_advance_curve']
+        self.assertIsInstance(curve, Curve)
+        self.assertSequenceEqual(curve.column_labels, ['RPM Delta', 'Advance'])
+        self.assertEqual(curve.curve_dimensions.xsize, 450)
+        self.assertEqual(curve.curve_dimensions.ysize, 200)
 
     def test_variablerefs_replacedinline(self):
         self.assertEqual(len(self.subject['PcVariables']['algorithmNames'].unknown_values), 8)

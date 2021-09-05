@@ -1,9 +1,9 @@
-from dataclasses import InitVar, dataclass
+from dataclasses import InitVar, dataclass, field
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, TypeVar, Generic
+from typing import Dict, Any, List, TypeVar, Generic, Optional
 
 
-class HasKey(ABC):
+class _HasKey(ABC):
     # pylint: disable=too-few-public-methods
 
     @property
@@ -15,45 +15,36 @@ class HasKey(ABC):
 DictItem = TypeVar('DictItem')
 
 
-@dataclass
-class DictBase(Generic[DictItem], Dict[Any, DictItem]):
+@dataclass(eq=False)
+class _DictBase(Generic[DictItem], Dict[Any, DictItem]):
     dict_data: InitVar[Dict[Any, DictItem]]
 
     def __post_init__(self, dict_data: Dict[Any, DictItem]):
         dict.__init__(self, dict_data)
 
 
-@dataclass
-class AbstractSection(HasKey):
+@dataclass(eq=False)
+class _SectionBase(_HasKey):
     name: str
 
     @property
     def key(self):
         return self.name
 
-    @abstractmethod
-    def is_empty(self):
-        pass
 
-
-@dataclass
-class DictSection(AbstractSection, DictBase[DictItem]):
+@dataclass(eq=False)
+class DictSection(_SectionBase, _DictBase[DictItem]):
     # pylint: disable=too-many-ancestors
-
-    def is_empty(self):
-        return len(self) == 0
+    pass
 
 
-@dataclass
-class Section(AbstractSection):
+@dataclass(eq=False)
+class Section(_SectionBase):
     lines: list
 
-    def is_empty(self):
-        return len(self.lines) == 0
 
-
-@dataclass
-class KeyValuePair(HasKey):
+@dataclass(eq=False)
+class KeyValuePair(_HasKey):
     key_name: str
     values: list
 
@@ -62,17 +53,16 @@ class KeyValuePair(HasKey):
         return self.key_name
 
 
-@dataclass
-class Variable(HasKey):
+@dataclass(eq=False)
+class Variable(_HasKey):
     name: str
-    unknown_values: list = None
 
     @property
     def key(self):
         return self.name
 
 
-@dataclass
+@dataclass(eq=False)
 class DataType:
     type_name: str
 
@@ -92,14 +82,13 @@ class DataType:
         return self._types[self.type_name][1]
 
 
-@dataclass
+@dataclass(eq=False)
 class TypedVariable(Variable):
-    type_name: InitVar[str] = None
-    data_type: DataType = None
+    type_name: InitVar[str]
+    data_type: DataType = field(init=False)
 
     def __post_init__(self, type_name: str):
-        if not self.data_type:
-            self.data_type = DataType(type_name=type_name)
+        self.data_type = DataType(type_name=type_name)
 
     @property
     @abstractmethod
@@ -107,73 +96,88 @@ class TypedVariable(Variable):
         """Size of the variable in bytes"""
 
 
-@dataclass
+@dataclass(eq=False)
 class BitSize:
     start_bit: int
     bit_length: int
 
 
-@dataclass
+@dataclass(eq=False)
 class BitVariable(TypedVariable):
-    bit_size: BitSize = None
-    offset: int = 0
+    bit_size: BitSize
+    offset: Optional[int] = None
+    unknown_values: Optional[List[Any]] = None
 
     @property
     def size(self) -> int:
         return self.data_type.width
 
 
-@dataclass
-class ScalarVariable(TypedVariable):
-    units: str = None
-    scale: float = None
-    translate: float = None
-    low: float = None
-    high: float = None
-    digits: int = None
-    offset: int = 0
+@dataclass(eq=False)
+class _ScalarCore:
+    units: Optional[str] = None
+    scale: Optional[float] = None
+    translate: Optional[float] = None
+    low: Optional[float] = None
+    high: Optional[float] = None
+    digits: Optional[int] = None
+    offset: Optional[int] = None
+    unknown_values: Optional[List[Any]] = None
+
+
+@dataclass(eq=False)
+class ScalarVariable(_ScalarCore, TypedVariable):
 
     @property
     def size(self) -> int:
         return self.data_type.width
 
 
-@dataclass
-class Array1dVariable(ScalarVariable):
-    dim1d: int = 0
+@dataclass(eq=False)
+class _Array1dCore(TypedVariable):
+    dim1d: int
+
+
+@dataclass(eq=False)
+class Array1dVariable(_ScalarCore, _Array1dCore):
 
     @property
     def size(self) -> int:
         return self.dim1d * self.data_type.width
 
 
-@dataclass
+@dataclass(eq=False)
 class MatrixDimensions:
     xsize: int
     ysize: int
 
 
-@dataclass
-class Array2dVariable(ScalarVariable):
-    dim2d: MatrixDimensions = None
+@dataclass(eq=False)
+class _Array2dCore(TypedVariable):
+    dim2d: MatrixDimensions
+
+
+@dataclass(eq=False)
+class Array2dVariable(_ScalarCore, _Array2dCore):
 
     @property
     def size(self) -> int:
         return self.dim2d.xsize * self.dim2d.ysize * self.data_type.width
 
 
-@dataclass
+@dataclass(eq=False)
 class StringVariable(Variable):
-    encoding: str = ''
-    length: int = 0
+    length: int
+    encoding: str
+    unknown_values: Optional[List[Any]] = None
 
     @property
     def size(self) -> int:
         return self.length
 
 
-@dataclass
-class Page(HasKey, DictBase[Variable]):
+@dataclass(eq=False)
+class Page(_HasKey, _DictBase[Variable]):
     page_num: int
 
     @property
@@ -181,20 +185,20 @@ class Page(HasKey, DictBase[Variable]):
         return self.page_num
 
 
-@dataclass
+@dataclass(eq=False)
 class ConstantsSection(DictSection[Page]):
     header_lines: list
 
 
-@dataclass
+@dataclass(eq=False)
 class AxisBin:
     constant_ref: str
-    outputchannel: str = None
-    unknown: str = None
+    outputchannel: Optional[str] = None
+    unknown: Optional[str] = None
 
 
-@dataclass
-class Table(HasKey):
+@dataclass(eq=False)
+class Table(_HasKey):
     # pylint: disable=too-many-instance-attributes
     table_id: str
     map3d_id: str
@@ -203,49 +207,49 @@ class Table(HasKey):
     xbins: AxisBin
     ybins: AxisBin
     zbins: AxisBin
-    unknown_values: list = None
-    xy_labels: list = None
-    grid_height: float = None
-    grid_orient: list = None
-    updown_labels: list = None
-    help_topic: str = None
+    unknown_values: Optional[List[Any]] = None
+    xy_labels: Optional[List[str]] = None
+    grid_height: Optional[float] = None
+    grid_orient: Optional[List[float]] = None
+    updown_labels: Optional[List[str]] = None
+    help_topic: Optional[str] = None
 
     @property
     def key(self):
         return self.table_id
 
 
-@dataclass
+@dataclass(eq=False)
 class Axis:
     min: int
     max: int
     step: int
 
 
-@dataclass
-class Curve(HasKey):
+@dataclass(eq=False)
+class Curve(_HasKey):
     # pylint: disable=too-many-instance-attributes
     curve_id: str
     name: str
-    columnlabels: list
+    column_labels: List[str]
     xaxis_limits: Axis
     xbins: AxisBin
     yaxis_limits: Axis
     ybins: AxisBin
-    size: list = None
-    gauge: str = ''
-    line_label: list = None
+    curve_dimensions: Optional[MatrixDimensions] = None
+    gauge: Optional[str] = None
+    line_label: Optional[str] = None
 
     @property
     def key(self):
         return self.curve_id
 
 
-@dataclass
-class TsIniFile(DictBase[AbstractSection]):
+@dataclass(eq=False)
+class TsIniFile(_DictBase[_SectionBase]):
     file_header: List
 
-    def __post_init__(self, dict_data: Dict[Any, AbstractSection]):
+    def __post_init__(self, dict_data: Dict[Any, _SectionBase]):
         super().__post_init__(dict_data)
         self._wire_constants()
 
