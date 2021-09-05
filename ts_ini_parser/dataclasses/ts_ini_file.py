@@ -62,24 +62,22 @@ class Variable(_HasKey):
         return self.name
 
 
-@dataclass(eq=False)
+@dataclass
 class DataType:
     type_name: str
+    c_typename: str
+    width: int
 
-    _types = {
-        'U08': ('uint8_t', 1),
-        'S08': ('int8_t', 1),
-        'U16': ('uint16_t', 2),
-        'S16': ('int16_t', 2),
-        'U32': ('uint32_t', 4),
-        'S32': ('int32_t', 4),
-        'F32': ('float', 4),
-    }
 
-    @property
-    def width(self):
-        """Width of the type in bytes"""
-        return self._types[self.type_name][1]
+_data_types = {
+    'U08': DataType(type_name='U08', c_typename='uint8_t', width=1),
+    'S08': DataType(type_name='S08', c_typename='int8_t', width=1),
+    'U16': DataType(type_name='U16', c_typename='uint16_t', width=2),
+    'S16': DataType(type_name='S16', c_typename='int16_t', width=2),
+    'U32': DataType(type_name='U32', c_typename='uint32_t', width=4),
+    'S32': DataType(type_name='S32', c_typename='int32_t', width=4),
+    'F32': DataType(type_name='U08', c_typename='float', width=4),
+}
 
 
 @dataclass(eq=False)
@@ -88,7 +86,7 @@ class TypedVariable(Variable):
     data_type: DataType = field(init=False)
 
     def __post_init__(self, type_name: str):
-        self.data_type = DataType(type_name=type_name)
+        self.data_type = _data_types[type_name]
 
     @property
     @abstractmethod
