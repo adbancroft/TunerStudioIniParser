@@ -1,7 +1,6 @@
 from dataclasses import InitVar, dataclass
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, TypeVar, Generic
-from .dataclass_utils import from_existing
 
 
 class HasKey(ABC):
@@ -217,16 +216,6 @@ class Table(HasKey):
 
 
 @dataclass
-class TableArray1dVariable(Array1dVariable):
-    table: Table = None
-
-
-@dataclass
-class TableArray2dVariable(Array2dVariable):
-    table: Table = None
-
-
-@dataclass
 class Axis:
     min: int
     max: int
@@ -253,11 +242,6 @@ class Curve(HasKey):
 
 
 @dataclass
-class CurveArray1dVariable(Array1dVariable):
-    curve: Curve = None
-
-
-@dataclass
 class TsIniFile(DictBase[AbstractSection]):
     file_header: List
 
@@ -272,20 +256,14 @@ class TsIniFile(DictBase[AbstractSection]):
             self._wire_curve(table)
 
     def _wire_table(self, table):
-        def set_bin_constant(bin_field, page, expected_type):
-            original_variable = page[bin_field.constant_ref]
-            if not isinstance(original_variable, expected_type):
-                new_instance = from_existing(original_variable, expected_type, {'table': table})
-                page[bin_field.constant_ref] = new_instance
-            else:
-                new_instance = original_variable
-            bin_field.constant_ref = new_instance
+        def set_bin_constant(bin_field, page):
+            bin_field.constant_ref = page[bin_field.constant_ref]
 
         page = self['Constants'][table.page_num]
 
-        set_bin_constant(table.xbins, page, TableArray1dVariable)
-        set_bin_constant(table.ybins, page, TableArray1dVariable)
-        set_bin_constant(table.zbins, page, TableArray2dVariable)
+        set_bin_constant(table.xbins, page)
+        set_bin_constant(table.ybins, page)
+        set_bin_constant(table.zbins, page)
 
     def _find_constant_nothrow(self, name, expected_type):
         for page in self['Constants'].values():
@@ -314,32 +292,9 @@ class TsIniFile(DictBase[AbstractSection]):
             raise KeyError(name)
         return constant
 
-    def _replace_constant(self, name, original_instance, new_instance):
-        for page in self['Constants'].values():
-            if page.get(name) == original_instance:
-                page[name] = new_instance
-                return True
-        return False
-
-    def _replace_variable(self, name, original_instance, new_instance):
-        if self['PcVariables'].get(name) == original_instance:
-            self['PcVariables'][name] = new_instance
-            return True
-        return False
-
-    def _replace_named_variable(self, name, original_instance, new_instance):
-        return self._replace_constant(name, original_instance, new_instance) or\
-               self._replace_variable(name, original_instance, new_instance)
-
     def _wire_curve(self, curve):
         def set_bin_constant(bin_field):
-            original_variable = self._find_named_variable(bin_field.constant_ref, Array1dVariable)  # noqa: E501
-            if not isinstance(original_variable, CurveArray1dVariable):
-                new_instance = from_existing(original_variable, CurveArray1dVariable, {'curve': curve})  # noqa: E501
-                self._replace_named_variable(bin_field.constant_ref, original_variable, new_instance)  # noqa: E501
-            else:
-                new_instance = original_variable
-            bin_field.constant_ref = new_instance
+            bin_field.constant_ref = self._find_named_variable(bin_field.constant_ref, Array1dVariable)  # noqa: E501
 
         set_bin_constant(curve.xbins)
         if isinstance(curve.ybins, list):
