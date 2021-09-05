@@ -102,6 +102,7 @@ class DataClassTransformer(Transformer):
         'bit_length',
         'xsize',
         'ysize',
+        'curve_gauge'
     ]
 
     _to_child = [        

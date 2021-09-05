@@ -55,6 +55,10 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertSequenceEqual(table.xy_labels, ['RPM', 'Load: '])
         self.assertSequenceEqual(table.updown_labels, ['HIGHER', 'LOWER'])
 
+        self.assertEqual(section['veTable1Tbl'].help_topic, 'http://speeduino.com/wiki/index.php/Tuning')
+        self.assertEqual(section['veTable1Tbl'].grid_height, 2.0)
+        self.assertSequenceEqual(section['veTable1Tbl'].grid_orient, [250, 0, 340])
+
     def test_curveeditor(self):
         section = self.subject['CurveEditor']
         self.assertIsInstance(section, DictSection)
@@ -66,6 +70,9 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertSequenceEqual(curve.column_labels, ['RPM Delta', 'Advance'])
         self.assertEqual(curve.curve_dimensions.xsize, 450)
         self.assertEqual(curve.curve_dimensions.ysize, 200)
+
+        self.assertEqual(section['warmup_curve'].curve_gauge, 'cltGauge')
+        self.assertSequenceEqual(section['warmup_analyzer_curve'].line_label, ['Current WUE', 'Recommended WUE'])
 
     def test_variablerefs_replacedinline(self):
         self.assertEqual(len(self.subject['PcVariables']['algorithmNames'].unknown_values), 8)

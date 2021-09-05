@@ -235,8 +235,8 @@ class Curve(_HasKey):
     yaxis_limits: Axis
     ybins: AxisBin
     curve_dimensions: Optional[MatrixDimensions] = None
-    gauge: Optional[str] = None
-    line_label: Optional[str] = None
+    curve_gauge: Optional[str] = None
+    line_label: Optional[List[str]] = None
 
     @property
     def key(self):
