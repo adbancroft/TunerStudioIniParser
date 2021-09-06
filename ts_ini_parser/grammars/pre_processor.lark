@@ -32,13 +32,24 @@ _SET_TAG       : "#" WS_INLINE? "set"i
 unset          : _UNSET_TAG CNAME _WS*
 _UNSET_TAG     : "#" WS_INLINE? "unset"i 
 
+error          : _ERROR_TAG ERROR_MSG _WS*
+ERROR_MSG      :  /[^\n]+/
+_ERROR_TAG     : "#" WS_INLINE? "error"i
+
+include        : _INCLUDE_TAG FILE_PATH _WS*
+FILE_PATH      : /[^\n]+/
+_INCLUDE_TAG   : "#" WS_INLINE? "include"i
+
+exit           : EXIT_TAG _WS*
+EXIT_TAG      : "#" WS_INLINE? "exit"i
+
 symbol         : CNAME
 !expression    : "!"? CNAME
 
-_non_condtional_line  : _passthrough_line | set | unset
+_non_condtional_line  : _passthrough_line | set | unset | error | include | exit
 _passthrough_line     : LINE NEWLINE _WS*
 LINE                  : /(?!(?: |\t))/ (NON_CONDITIONAL_PPLINE | NON_PPLINE)
-NON_CONDITIONAL_PPLINE: /#(?: |\t)*(?:define|error)/ (_STOP_MATCH /.+?/)+
+NON_CONDITIONAL_PPLINE: /#(?: |\t)*(?:define)/ (_STOP_MATCH /.+?/)+
 NON_PPLINE        : (_UNQUOTED_STRING | _QUOTED_STRING)+
 // Various lookaheads that will stop regex parsing
 _CPP_COMMENT_STOP : /(?!(?: |\t)*\/\/)/   // C++ style comment (//), space prefixed
@@ -52,4 +63,4 @@ _UNQUOTED_STRING  : _STOP_MATCH /[^\"]+?/
 _WS             : WS
 COMMENT        : /(;|\/\/)[^\n]*/ | PP_COMMENT
 // Needs the negative lookahead in order to be ignorable :-(
-PP_COMMENT     : /#( |\t)*(?!if|ifdef|else|elif|endif|define|set|unset|error)[^\n]+/
+PP_COMMENT     : /#( |\t)*(?!if|ifdef|else|elif|endif|define|set|unset|error|exit)[^\n]+/

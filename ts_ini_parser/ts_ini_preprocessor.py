@@ -1,5 +1,5 @@
 from pathlib import Path
-from lark import Lark, Transformer, Tree
+from lark import Lark, Transformer, Tree, Token
 from more_itertools import first_true
 from .text_io_lexer import TextIoLexer
 
@@ -36,7 +36,19 @@ class TsIniPreProcessor:
             # An If/ElseIf combo may generate more than one ppif_body, so
             # pick the first one - this will be the first that evaluated to
             # True which is the same logic the C preprocessor uses.
-            return first_true(children, pred=lambda c: c)
+            selected_body = first_true(children, pred=lambda c: c)
+
+            # Check for any error directives from the INI file
+            # We only expect these inside a pre-processor conditional
+            if selected_body:
+                errors = list(selected_body.scan_values(lambda v: isinstance(v, Token) and v.type=='ERROR_MSG'))
+                if errors:
+                    raise SyntaxError(errors[0].value, (None, errors[0].line, errors[0].column, errors[0].value))
+                exit_directives = list(selected_body.scan_values(lambda v: isinstance(v, Token) and v.type=='EXIT_TAG'))
+                if exit_directives:
+                    raise SyntaxError('Exit directive triggered', (None, exit_directives[0].line, exit_directives[0].column, exit_directives[0].value))
+
+            return selected_body
 
         def if_part(self, children):
             """Process if_part tree object"""
@@ -76,6 +88,10 @@ class TsIniPreProcessor:
             if len(children) > 1:  # Negated
                 return not children[1].value in self._symbol_table.keys()
             return children[0].value in self._symbol_table.keys()
+
+        def include(self, children):
+            # Just skip includes for now
+            return None
 
     def __init__(self):
         self._symbol_table = {}
