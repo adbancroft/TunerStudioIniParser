@@ -13,7 +13,7 @@
 // ============================ Overall File Structure ============================
 
 start       : file_header sections
-file_header : (kvp_line | _pp_line)*
+file_header : (kvp_line | hashdef_line)*
 sections    : _section+
 _section    : context_help_section 
 				| constants_section 
@@ -30,23 +30,24 @@ _section    : context_help_section
 // Hence special handling
 context_help_section      : "[" context_help_section_name "]" _EOL context_help_section_body
 	!context_help_section_name: "SettingContextHelp" -> name
-	context_help_section_body : ((_pp_line | help_line)* ) -> dict_data
+	context_help_section_body : ((hashdef_line | help_line)* ) -> dict_data
 		help_line                 : KEY STRING_VALUE _EOL
 		STRING_VALUE              : /\".*\"/
 
 // Entries in the Constants section can be grouped into pages 
 constants_section : "[" constants_section_name "]" _EOL header_lines pages
 	!constants_section_name: "Constants" -> name
-	header_lines           : (kvp_line | _pp_line | message_format_line)*
+	header_lines           : (kvp_line | hashdef_line | message_format_line)*
 	pages                  : page+
 		page       : _PAGE_TAG page_num _EOL page_lines
 		_PAGE_TAG  : "page"i WS_INLINE? "=" 
 		page_lines : _page_line+
-		_page_line : kvp_line | kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | _pp_line | text_line
+		_page_line :  kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | hashdef_line
 
 // Entries in here can form a unique dictionary
 pcvariables_section:  "[" pcvariables_section_name "]" _EOL variables
-	variables                : _section_line*
+	variables       : _variables_line+
+	_variables_line : kvp_line | kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | hashdef_line
 	!pcvariables_section_name: "PcVariables" -> name
 
 // Entries in the TableEditor section can be grouped into tables
@@ -60,7 +61,7 @@ tableeditor_section : "[" tableeditor_section_name "]" _EOL tables
 				map3d_id          : _identifier 
 				title             : _string_literal 
 
-			_table_line       : kvp_line | _pp_line | grid_height | grid_orient | zbins | xbins | ybins | help_topic | xy_labels | updown_labels
+			_table_line       : hashdef_line | grid_height | grid_orient | zbins | xbins | ybins | help_topic | xy_labels | updown_labels
 			grid_height       : "gridHeight"i "=" NUMBER _EOL 
 			grid_orient       : "gridOrient"i "=" NUMBER "," NUMBER "," NUMBER _EOL
 			xy_labels         : "xyLabels" "=" _label_list _EOL
@@ -75,7 +76,7 @@ curve               : "curve"i "="  _curve_header _EOL _curve_line+
 	_curve_header   : curve_id "," curve_name ("," page_num)?
 		curve_id        : _identifier 
 		curve_name      : _string_literal -> name
-	_curve_line  : kvp_line | _pp_line | xbins | ybins | xaxis_limits | yaxis_limits | column_labels | curve_gauge | curve_dimensions | line_label
+	_curve_line  : hashdef_line | xbins | ybins | xaxis_limits | yaxis_limits | column_labels | curve_gauge | curve_dimensions | line_label | help_topic
 		xaxis_limits  : "xaxis"i "=" axis_limits _EOL 
 		yaxis_limits  : "yaxis"i "=" axis_limits _EOL 
 		column_labels : "columnlabel"i "=" _label_list _EOL
@@ -90,7 +91,7 @@ curve               : "curve"i "="  _curve_header _EOL _curve_line+
 // Any other section
 generic_section: "[" section_name "]" _EOL  lines
 lines:        _section_line*
-_section_line  : help_topic | kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | kvp_line | defaultvalue_line | _pp_line | text_line | message_format_line | generic_gauge_line
+_section_line  : help_topic | kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | kvp_line | defaultvalue_line | hashdef_line | text_line | message_format_line | generic_gauge_line
 section_name   : SECTION_NAME -> name
 SECTION_NAME   : (LETTER | DIGIT) (LETTER | DIGIT | " ")* 
 
@@ -152,13 +153,10 @@ KVP_STRING_TAG  : KEY WS_INLINE? "string"i
 
 
 // Lines beginning with #. Typiclly preprocessor directives
-_pp_line       : hashdef | error
-hashdef        :_HASHDEF_TAG symbol "=" (_hashdef_variable | (_field_list _EOL))
+hashdef_line       : _HASHDEF_TAG symbol "=" (_hashdef_variable | (_field_list _EOL))
 	symbol         : _identifier 
 	_HASHDEF_TAG   : "#" WS_INLINE? "define"i 
 	_hashdef_variable : kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | kvp_line
-error          : _HAS_ERROR_TAG ANY_VALUE  _EOL
-_HAS_ERROR_TAG : "#" WS_INLINE? "error"i 
 
 // defaultValue
 defaultvalue_line:  "defaultValue"i "=" identifier "," default_value _EOL
