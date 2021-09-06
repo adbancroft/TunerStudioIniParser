@@ -159,7 +159,7 @@ class DataClassTransformer(Transformer):
 
     # ================== #define, $symbol handling =====================
 
-    def hashdef(self, children):
+    def hashdef_line(self, children):
         # Record a symbol - will over write any previous definition
         self._symbols[children[0][1]] = children[1:]
         raise Discard
