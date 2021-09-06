@@ -38,12 +38,11 @@ class TsIniParser:
         KVP_BITS_TAG = _extract_key
         KVP_ARRAY_TAG = _extract_key
         KVP_STRING_TAG = _extract_key
-        GAUGE_TAG = _extract_key
 
-    def __init__(self):
-        self._pre_processor = TsIniPreProcessor()
+    def __init__(self, ignore_hash_error: bool = False):
+        self._pre_processor = TsIniPreProcessor(ignore_hash_error)
         self._ts_parser = Lark.open(_GRAMMAR,
-                                    parser='lalr', debug=True,
+                                    parser='lalr',
                                     cache=str(_GRAMMAR_CACHE),
                                     transformer=TsIniParser.TransformTerminals())
         # Adapt the parser lexer to consume the preprocessor output (a Tree)

@@ -27,9 +27,7 @@ class test_parser(unittest.TestCase):
 
     def test_allfiles_noexceptions(self):
         # Test all known INI files
-        parser = TsIniParser()
-        parser.define('LAMBDA', True)
-        parser.define('ALPHA_N', True)
+        parser = TsIniParser(ignore_hash_error=True)
 
         test_file_folder = get_test_ini_path('Test_Files')
         ini_files = test_file_folder.glob("*.ini")

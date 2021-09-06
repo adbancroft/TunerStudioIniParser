@@ -24,12 +24,18 @@ class TsIniPreProcessor:
         source file.
         """
 
-        def __init__(self, symbol_table):
+        def __init__(self, symbol_table, ignore_hash_error: bool):
             super().__init__()
             self._symbol_table = symbol_table
+            self._ignore_hash_error = ignore_hash_error
+            self._parse_source = None
 
         def pp_conditional(self, children):
+
             """Process pp_conditional tree object"""
+
+            def is_token(item, token_type_name: str) -> bool:
+                return isinstance(item, Token) and item.type == token_type_name
 
             # The other rule processors will have applied the conditional
             # tests and generated either ppif_body or empty trees.
@@ -41,12 +47,20 @@ class TsIniPreProcessor:
             # Check for any error directives from the INI file
             # We only expect these inside a pre-processor conditional
             if selected_body:
-                errors = list(selected_body.scan_values(lambda v: isinstance(v, Token) and v.type=='ERROR_MSG'))
+                errors = list(selected_body.scan_values(lambda v: is_token(v, 'ERROR_MSG')))
                 if errors:
-                    raise SyntaxError(errors[0].value, (None, errors[0].line, errors[0].column, errors[0].value))
-                exit_directives = list(selected_body.scan_values(lambda v: isinstance(v, Token) and v.type=='EXIT_TAG'))
+                    raise SyntaxError('#error directive triggered',
+                                      (self._parse_source,
+                                       errors[0].line,
+                                       errors[0].column,
+                                       errors[0].value))
+                exit_directives = list(selected_body.scan_values(lambda v: is_token(v, 'EXIT_TAG')))
                 if exit_directives:
-                    raise SyntaxError('Exit directive triggered', (None, exit_directives[0].line, exit_directives[0].column, exit_directives[0].value))
+                    raise SyntaxError('#exit directive triggered',
+                                      (self._parse_source,
+                                       exit_directives[0].line,
+                                       exit_directives[0].column,
+                                       exit_directives[0].value))
 
             return selected_body
 
@@ -90,16 +104,30 @@ class TsIniPreProcessor:
             return children[0].value in self._symbol_table.keys()
 
         def include(self, children):
+            # pylint: disable=unused-argument
             # Just skip includes for now
             return None
 
-    def __init__(self):
+        def error(self, children):
+            if self._ignore_hash_error:
+                return None
+            return Tree('error', children)
+
+        def exit(self, children):
+            if self._ignore_hash_error:
+                return None
+            return Tree('exit', children)
+
+        def set_parse_source(self, parse_source):
+            self._parse_source = parse_source
+
+    def __init__(self, ignore_hash_error: bool):
         self._symbol_table = {}
-        pp_transformer = TsIniPreProcessor.PreProcessorTransformer(self._symbol_table)
-        self.processor = Lark.open(_GRAMMAR, parser='lalr', debug=True,
-                                   transformer=pp_transformer,
-                                   cache=str(_GRAMMAR_CACHE))
-        self.processor.parser.lexer = TextIoLexer(self.processor.parser.lexer)
+        self._pp_transformer = TsIniPreProcessor.PreProcessorTransformer(self._symbol_table, ignore_hash_error)
+        self._processor = Lark.open(_GRAMMAR, parser='lalr',
+                                    transformer=self._pp_transformer,
+                                    cache=str(_GRAMMAR_CACHE))
+        self._processor.parser.lexer = TextIoLexer(self._processor.parser.lexer)
 
     def define(self, symbol: str, value):
         """Define a preprocessor symbol to control preprocessing condtionals
@@ -113,4 +141,5 @@ class TsIniPreProcessor:
         self._symbol_table[symbol] = value
 
     def pre_process(self, parse_source, on_error=None) -> Tree:
-        return self.processor.parse(parse_source, on_error=on_error)
+        self._pp_transformer.set_parse_source(parse_source)
+        return self._processor.parse(parse_source, on_error=on_error)
