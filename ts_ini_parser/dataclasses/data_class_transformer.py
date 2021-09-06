@@ -10,11 +10,6 @@ class DataClassTransformer(Transformer):
         self._factory = dataclass_factory
         self._symbols = {}
 
-    # ATM we only have one rule that needs this transform
-    def help_line(self, children):
-        # pylint: disable=no-self-use
-        return children
-
     # ================== Generic rule processing =====================
 
     # Hoist all tokens into their parent node
@@ -58,7 +53,8 @@ class DataClassTransformer(Transformer):
 
     _to_tuple_and_type = [
         'bit_size',
-        'dim2d'
+        'dim2d',
+        'curve_dimensions'
     ]
 
     _hoist_only_child = [
@@ -100,17 +96,26 @@ class DataClassTransformer(Transformer):
         'type_other',
         'number_field',
         'page_num',
-        'string_literal',
         'name',
         'variable_ref',
         'start_bit',
         'bit_length',
         'xsize',
         'ysize',
+        'curve_gauge'
+    ]
+
+    _to_child = [
+        'string_literal',
+    ]
+
+    _to_children = [
+        'help_line',
     ]
 
     # Applies to all rules not explicitly processed
     def __default__(self, data, children, meta):
+        # pylint: disable=too-many-return-statements
         if data in self._dict_from_child_types:
             return ('dict_data', [(i.key, i) for i in children])
 
@@ -124,6 +129,14 @@ class DataClassTransformer(Transformer):
 
         if data in self._to_tuple_and_type:
             return (data, self._to_type(data, children))
+
+        if data in self._to_child:
+            if len(children) != 1:
+                raise ValueError()
+            return children[0]
+
+        if data in self._to_children:
+            return children
 
         # Default rule action is to transform to a tuple
         #

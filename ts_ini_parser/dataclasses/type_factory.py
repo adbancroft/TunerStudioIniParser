@@ -22,7 +22,8 @@ _RULE_TYPEMAP = {
         'generic_section': ts_ini_file.Section,
         'start': ts_ini_file.TsIniFile,
         'bit_size': ts_ini_file.BitSize,
-        'dim2d': ts_ini_file.MatrixDimensions
+        'dim2d': ts_ini_file.MatrixDimensions,
+        'curve_dimensions': ts_ini_file.MatrixDimensions,
     }
 
 
