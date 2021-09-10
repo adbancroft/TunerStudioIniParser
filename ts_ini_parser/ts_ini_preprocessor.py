@@ -1,6 +1,5 @@
 from pathlib import Path
 from lark import Lark, Transformer, Tree, Token
-from more_itertools import first_true
 from .text_io_lexer import TextIoLexer
 
 _GRAMMAR = Path(__file__).parent / 'grammars' / 'pre_processor.lark'
@@ -42,7 +41,8 @@ class TsIniPreProcessor:
             # An If/ElseIf combo may generate more than one ppif_body, so
             # pick the first one - this will be the first that evaluated to
             # True which is the same logic the C preprocessor uses.
-            selected_body = first_true(children, pred=lambda c: c)
+            selected_body = [child for child in children if child]
+            selected_body = selected_body[0] if selected_body else None
 
             # Check for any error directives from the INI file
             # We only expect these inside a pre-processor conditional
