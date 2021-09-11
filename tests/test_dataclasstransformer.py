@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 import sys
-sys.path.insert(0, Path(__file__).parent.absolute())
+sys.path.insert(0, str(Path(__file__).parent.parent.absolute()))
 
 from ts_ini_parser import *
 try:
@@ -20,20 +20,20 @@ class test_dataclasstransformer(unittest.TestCase):
 
     def test_basic(self):
         self.assertIsInstance(self.subject, TsIniFile)
-        self.assertIsInstance(self.subject, dict)
+        self.assertIsInstance(self.subject, UserDict)
         self.assertEqual(22, len(self.subject))
 
-        self.assertEqual('iniSpecVersion', self.subject['TunerStudio'].lines[0].name)
+        self.assertEqual('iniSpecVersion', self.subject['TunerStudio'][0].name)
 
     def test_constants(self):
         section = self.subject['Constants']
         self.assertIsInstance(section, ConstantsSection)
-        self.assertIsInstance(section, dict)
+        self.assertIsInstance(section, UserDict)
         self.assertEqual(14, len(section))
 
         page = section[7]
         self.assertIsInstance(page, Page)
-        self.assertIsInstance(page, dict)
+        self.assertIsInstance(page, UserDict)
         self.assertEqual(9, len(page))
 
         table2d = page['vvtTable']
@@ -49,7 +49,7 @@ class test_dataclasstransformer(unittest.TestCase):
     def test_tableeditor(self):
         section = self.subject['TableEditor']
         self.assertIsInstance(section, DictSection)
-        self.assertIsInstance(section, dict)
+        self.assertIsInstance(section, UserDict)
         self.assertEqual(19, len(section))
 
         table = section['dwell_map']
@@ -64,7 +64,7 @@ class test_dataclasstransformer(unittest.TestCase):
     def test_curveeditor(self):
         section = self.subject['CurveEditor']
         self.assertIsInstance(section, DictSection)
-        self.assertIsInstance(section, dict)
+        self.assertIsInstance(section, UserDict)
         self.assertEqual(31, len(section))
 
         curve = section['idle_advance_curve']
