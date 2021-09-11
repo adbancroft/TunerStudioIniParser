@@ -127,6 +127,7 @@ class _Array1dCore(_TypedVariable):
     def size(self) -> int:
         return self.dim1d * self.data_type.width
 
+
 @dataclass(eq=False)
 class Array1dVariable(_ScalarCore, _Array1dCore):
     pass
