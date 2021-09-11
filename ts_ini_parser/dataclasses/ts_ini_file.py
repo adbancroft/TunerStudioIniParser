@@ -1,17 +1,15 @@
 from dataclasses import InitVar, dataclass, field
 from abc import abstractmethod
-from typing import Dict, Any, List, TypeVar, Generic, Optional
-
-
-DictItem = TypeVar('DictItem')
+from typing import Dict, Any, Iterable, List, Mapping, Optional
+from collections import UserDict, UserList
 
 
 @dataclass(eq=False)
-class _DictBase(Generic[DictItem], Dict[Any, DictItem]):
-    dict_data: InitVar[Dict[Any, DictItem]]
+class _DictBase(UserDict):
+    dict_data: InitVar[Mapping]
 
-    def __post_init__(self, dict_data: Dict[Any, DictItem]):
-        dict.__init__(self, dict_data)
+    def __post_init__(self, dict_data: Mapping):
+        super().__init__(dict_data)
 
 
 @dataclass(eq=False)
@@ -24,14 +22,17 @@ class _SectionBase:
 
 
 @dataclass(eq=False)
-class DictSection(_SectionBase, _DictBase[DictItem]):
+class DictSection(_SectionBase, _DictBase):
     # pylint: disable=too-many-ancestors
     pass
 
 
 @dataclass(eq=False)
-class Section(_SectionBase):
-    lines: list
+class Section(_SectionBase, UserList):
+    lines: InitVar[Iterable]
+
+    def __post_init__(self, lines: Iterable):
+        UserList.__init__(self, lines)
 
 
 @dataclass(eq=False)
