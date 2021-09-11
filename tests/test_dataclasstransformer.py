@@ -23,6 +23,8 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertIsInstance(self.subject, dict)
         self.assertEqual(22, len(self.subject))
 
+        self.assertEqual('iniSpecVersion', self.subject['TunerStudio'].lines[0].name)
+
     def test_constants(self):
         section = self.subject['Constants']
         self.assertIsInstance(section, ConstantsSection)

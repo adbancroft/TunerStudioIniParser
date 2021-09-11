@@ -102,7 +102,7 @@ SECTION_NAME   : (LETTER | DIGIT) (LETTER | DIGIT | " ")*
 // name = class,  type, offset, shape, units, scale, translate, lo, hi, digits
 kvp_line        : key_generic values _EOL
 	values      : _field_list
-	key_generic : KEY -> key_name 
+	key_generic : KEY -> name
 
 kvp_scalar_line : kvp_scalar "," type_name ("," offset)? ("," _variable_parameters)? _EOL
 kvp_scalar      : KVP_SCALAR_TAG -> name 

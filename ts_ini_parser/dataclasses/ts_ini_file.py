@@ -44,13 +44,9 @@ class Section(_SectionBase):
 
 
 @dataclass(eq=False)
-class KeyValuePair(_HasKey):
-    key_name: str
+class KeyValuePair():
+    name: str
     values: list
-
-    @property
-    def key(self):
-        return self.key_name
 
 
 @dataclass(eq=False)
