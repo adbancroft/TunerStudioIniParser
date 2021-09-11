@@ -68,7 +68,7 @@ _data_types = {
 
 
 @dataclass(eq=False)
-class TypedVariable(Variable):
+class _TypedVariable(Variable):
     type_name: InitVar[str]
     data_type: DataType = field(init=False)
 
@@ -88,7 +88,7 @@ class BitSize:
 
 
 @dataclass(eq=False)
-class BitVariable(TypedVariable):
+class BitVariable(_TypedVariable):
     bit_size: BitSize
     offset: Optional[int] = None
     unknown_values: Optional[List[Any]] = None
@@ -112,7 +112,7 @@ class _ScalarCore:
 
 
 @dataclass(eq=False)
-class ScalarVariable(_ScalarCore, TypedVariable):
+class ScalarVariable(_ScalarCore, _TypedVariable):
 
     @property
     def size(self) -> int:
@@ -120,16 +120,16 @@ class ScalarVariable(_ScalarCore, TypedVariable):
 
 
 @dataclass(eq=False)
-class _Array1dCore(TypedVariable):
+class _Array1dCore(_TypedVariable):
     dim1d: int
-
-
-@dataclass(eq=False)
-class Array1dVariable(_ScalarCore, _Array1dCore):
 
     @property
     def size(self) -> int:
         return self.dim1d * self.data_type.width
+
+@dataclass(eq=False)
+class Array1dVariable(_ScalarCore, _Array1dCore):
+    pass
 
 
 @dataclass(eq=False)
@@ -139,16 +139,17 @@ class MatrixDimensions:
 
 
 @dataclass(eq=False)
-class _Array2dCore(TypedVariable):
+class _Array2dCore(_TypedVariable):
     dim2d: MatrixDimensions
-
-
-@dataclass(eq=False)
-class Array2dVariable(_ScalarCore, _Array2dCore):
 
     @property
     def size(self) -> int:
         return self.dim2d.xsize * self.dim2d.ysize * self.data_type.width
+
+
+@dataclass(eq=False)
+class Array2dVariable(_ScalarCore, _Array2dCore):
+    pass
 
 
 @dataclass(eq=False)
