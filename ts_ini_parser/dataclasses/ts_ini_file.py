@@ -1,15 +1,6 @@
 from dataclasses import InitVar, dataclass, field
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Dict, Any, List, TypeVar, Generic, Optional
-
-
-class _HasKey(ABC):
-    # pylint: disable=too-few-public-methods
-
-    @property
-    @abstractmethod
-    def key(self):
-        raise NotImplementedError()
 
 
 DictItem = TypeVar('DictItem')
@@ -24,7 +15,7 @@ class _DictBase(Generic[DictItem], Dict[Any, DictItem]):
 
 
 @dataclass(eq=False)
-class _SectionBase(_HasKey):
+class _SectionBase:
     name: str
 
     @property
@@ -50,7 +41,7 @@ class KeyValuePair():
 
 
 @dataclass(eq=False)
-class Variable(_HasKey):
+class Variable:
     name: str
 
     @property
@@ -77,7 +68,7 @@ _data_types = {
 
 
 @dataclass(eq=False)
-class TypedVariable(Variable):
+class _TypedVariable(Variable):
     type_name: InitVar[str]
     data_type: DataType = field(init=False)
 
@@ -97,7 +88,7 @@ class BitSize:
 
 
 @dataclass(eq=False)
-class BitVariable(TypedVariable):
+class BitVariable(_TypedVariable):
     bit_size: BitSize
     offset: Optional[int] = None
     unknown_values: Optional[List[Any]] = None
@@ -121,7 +112,7 @@ class _ScalarCore:
 
 
 @dataclass(eq=False)
-class ScalarVariable(_ScalarCore, TypedVariable):
+class ScalarVariable(_ScalarCore, _TypedVariable):
 
     @property
     def size(self) -> int:
@@ -129,16 +120,17 @@ class ScalarVariable(_ScalarCore, TypedVariable):
 
 
 @dataclass(eq=False)
-class _Array1dCore(TypedVariable):
+class _Array1dCore(_TypedVariable):
     dim1d: int
-
-
-@dataclass(eq=False)
-class Array1dVariable(_ScalarCore, _Array1dCore):
 
     @property
     def size(self) -> int:
         return self.dim1d * self.data_type.width
+
+
+@dataclass(eq=False)
+class Array1dVariable(_ScalarCore, _Array1dCore):
+    pass
 
 
 @dataclass(eq=False)
@@ -148,16 +140,17 @@ class MatrixDimensions:
 
 
 @dataclass(eq=False)
-class _Array2dCore(TypedVariable):
+class _Array2dCore(_TypedVariable):
     dim2d: MatrixDimensions
-
-
-@dataclass(eq=False)
-class Array2dVariable(_ScalarCore, _Array2dCore):
 
     @property
     def size(self) -> int:
         return self.dim2d.xsize * self.dim2d.ysize * self.data_type.width
+
+
+@dataclass(eq=False)
+class Array2dVariable(_ScalarCore, _Array2dCore):
+    pass
 
 
 @dataclass(eq=False)
@@ -172,7 +165,7 @@ class StringVariable(Variable):
 
 
 @dataclass(eq=False)
-class Page(_HasKey, _DictBase[Variable]):
+class Page(_DictBase[Variable]):
     page_num: int
 
     @property
@@ -193,7 +186,7 @@ class AxisBin:
 
 
 @dataclass(eq=False)
-class Table(_HasKey):
+class Table:
     # pylint: disable=too-many-instance-attributes
     table_id: str
     map3d_id: str
@@ -222,7 +215,7 @@ class Axis:
 
 
 @dataclass(eq=False)
-class Curve(_HasKey):
+class Curve:
     # pylint: disable=too-many-instance-attributes
     curve_id: str
     name: str
