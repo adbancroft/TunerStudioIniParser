@@ -1,15 +1,6 @@
 from dataclasses import InitVar, dataclass, field
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Dict, Any, List, TypeVar, Generic, Optional
-
-
-class _HasKey(ABC):
-    # pylint: disable=too-few-public-methods
-
-    @property
-    @abstractmethod
-    def key(self):
-        raise NotImplementedError()
 
 
 DictItem = TypeVar('DictItem')
@@ -24,7 +15,7 @@ class _DictBase(Generic[DictItem], Dict[Any, DictItem]):
 
 
 @dataclass(eq=False)
-class _SectionBase(_HasKey):
+class _SectionBase:
     name: str
 
     @property
@@ -50,7 +41,7 @@ class KeyValuePair():
 
 
 @dataclass(eq=False)
-class Variable(_HasKey):
+class Variable:
     name: str
 
     @property
@@ -172,7 +163,7 @@ class StringVariable(Variable):
 
 
 @dataclass(eq=False)
-class Page(_HasKey, _DictBase[Variable]):
+class Page(_DictBase[Variable]):
     page_num: int
 
     @property
@@ -193,7 +184,7 @@ class AxisBin:
 
 
 @dataclass(eq=False)
-class Table(_HasKey):
+class Table:
     # pylint: disable=too-many-instance-attributes
     table_id: str
     map3d_id: str
@@ -222,7 +213,7 @@ class Axis:
 
 
 @dataclass(eq=False)
-class Curve(_HasKey):
+class Curve:
     # pylint: disable=too-many-instance-attributes
     curve_id: str
     name: str
