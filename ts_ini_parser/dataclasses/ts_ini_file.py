@@ -40,6 +40,10 @@ class KeyValuePair():
     name: str
     values: list
 
+    @property
+    def key(self):
+        return self.name
+
 
 @dataclass(eq=False)
 class Variable:
@@ -158,6 +162,7 @@ class Array2dVariable(_ScalarCore, _Array2dCore):
 class StringVariable(Variable):
     length: int
     encoding: str
+    offset: Optional[int] = None
     unknown_values: Optional[List[Any]] = None
 
     @property
@@ -183,7 +188,6 @@ class ConstantsSection(DictSection[Page]):
 class AxisBin:
     constant_ref: str
     outputchannel: Optional[str] = None
-    unknown: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -225,9 +229,11 @@ class Curve:
     xbins: AxisBin
     yaxis_limits: Axis
     ybins: AxisBin
+    page_num: Optional[int] = None
     curve_dimensions: Optional[MatrixDimensions] = None
     curve_gauge: Optional[str] = None
     line_label: Optional[List[str]] = None
+    help_topic: Optional[str] = None
 
     @property
     def key(self):
@@ -243,20 +249,12 @@ class TsIniFile(_DictBase[_SectionBase]):
         self._wire_constants()
 
     def _wire_constants(self):
-        for table in self['TableEditor'].values():
-            self._wire_table(table)
-        for table in self['CurveEditor'].values():
-            self._wire_curve(table)
-
-    def _wire_table(self, table):
-        def set_bin_constant(bin_field, page):
-            bin_field.constant_ref = page[bin_field.constant_ref]
-
-        page = self['Constants'][table.page_num]
-
-        set_bin_constant(table.xbins, page)
-        set_bin_constant(table.ybins, page)
-        set_bin_constant(table.zbins, page)
+        if 'TableEditor' in self:
+            for table in self['TableEditor'].values():
+                self._wire_table(table)
+        if 'CurveEditor' in self:
+            for table in self['CurveEditor'].values():
+                self._wire_curve(table)
 
     def _find_constant_nothrow(self, name, expected_type):
         for page in self['Constants'].values():
@@ -265,15 +263,10 @@ class TsIniFile(_DictBase[_SectionBase]):
                 return constant
         return None
 
-    def _find_constant(self, name, expected_type):
-        constant = self._find_constant_nothrow(name, expected_type)
-        if not constant:
-            raise KeyError(name)
-        return constant
-
     def _find_pcvariable_nothrow(self, name, expected_type):
-        variable = self['PcVariables'].get(name)
-        return variable if isinstance(variable, expected_type) else None
+        if 'PcVariables' in self:
+            variable = self['PcVariables'].get(name)
+            return variable if isinstance(variable, expected_type) else None
 
     def _find_named_variable_nothrow(self, name, expected_type):
         constant = self._find_constant_nothrow(name, expected_type)
@@ -285,13 +278,21 @@ class TsIniFile(_DictBase[_SectionBase]):
             raise KeyError(name)
         return constant
 
-    def _wire_curve(self, curve):
-        def set_bin_constant(bin_field):
-            bin_field.constant_ref = self._find_named_variable(bin_field.constant_ref, Array1dVariable)  # noqa: E501
+    def _set_bin_constant(self, bin_field: AxisBin, var_type: type):
+        bin_field.constant_ref = self._find_named_variable(bin_field.constant_ref, var_type)  # noqa: E501
 
-        set_bin_constant(curve.xbins)
-        if isinstance(curve.ybins, list):
-            for ybin in curve.ybins:
-                set_bin_constant(ybin)
-        else:
-            set_bin_constant(curve.ybins)
+    def _wire_curve(self, curve):
+        def wire_curve_bins(bins):
+            if isinstance(bins, list):
+                for bin in bins:
+                    self._set_bin_constant(bin, Array1dVariable)
+            else:
+                self._set_bin_constant(bins, Array1dVariable)
+
+        wire_curve_bins(curve.xbins)
+        wire_curve_bins(curve.ybins)
+
+    def _wire_table(self, table):
+        self._set_bin_constant(table.xbins, Array1dVariable)
+        self._set_bin_constant(table.ybins, Array1dVariable)
+        self._set_bin_constant(table.zbins, Array2dVariable)
