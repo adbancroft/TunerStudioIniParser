@@ -178,10 +178,9 @@ help_topic  : "topicHelp"i "=" (string_literal | identifier) _EOL
 
 // ============================ Line Components  ============================
 
-axis_bin    : constant_ref ("," outputchannel ("," unknown)?)? 
+axis_bin    : constant_ref ("," outputchannel ("," "readonly"i)?)? 
 	constant_ref : _identifier 
 	outputchannel: _identifier 
-	unknown: _identifier 
 	
 _field_list : (_field_list ",")? _field?
 _field      :  inline_expression 
