@@ -36,12 +36,12 @@ class test_parser(unittest.TestCase):
         log.addHandler(StreamHandler())
         log.setLevel(DEBUG)
 
-        try:
-            for ini_file in ini_files:
-                log.info(f"Parsing {ini_file}")
-                self.assertIsNotNone(parse_file(ini_file, parser))
-        except Exception as error:
-            self.fail(f"Failed with {str(error)}")
+        for ini_file in ini_files:
+            try:
+                    log.info(f"Parsing {ini_file}")
+                    self.assertIsNotNone(parse_file(ini_file, parser))
+            except Exception as error:
+                self.fail(f"Failed {ini_file} with {str(error)}")
 
 
 if __name__ == '__main__':
