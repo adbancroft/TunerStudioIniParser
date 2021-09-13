@@ -258,8 +258,8 @@ class Curve:
                       xbins: List[AxisBin],
                       ybins: List[AxisBin],
                       column_labels: List[str],
-                      line_label: List[str]
-                      ):
+                      line_label: List[str]):
+        # pylint: disable=too-many-arguments
         # Normalize the incoming arrays to the length of ybins
         count = len(ybins)
         column_labels = column_labels[:count] if column_labels else []
@@ -306,6 +306,7 @@ class TsIniFile(_DictBase[_SectionBase]):
         if 'PcVariables' in self:
             variable = self['PcVariables'].get(name)
             return variable if isinstance(variable, expected_type) else None
+        return None
 
     def _find_named_variable_nothrow(self, name, expected_type):
         constant = self._find_constant_nothrow(name, expected_type)
@@ -324,12 +325,12 @@ class TsIniFile(_DictBase[_SectionBase]):
         # Wire in output channel (once the OutputChannels section is properly parsed)
 
     def _wire_curve(self, curve: Curve):
-        def wire_curve_bin(bin: CurveLine):
-            self._set_bin_variable(bin.xbin, Array1dVariable)
-            self._set_bin_variable(bin.ybin, Array1dVariable)
+        def wire_curve_bin(line: CurveLine):
+            self._set_bin_variable(line.xbin, Array1dVariable)
+            self._set_bin_variable(line.ybin, Array1dVariable)
 
-        for bin in curve.lines:
-            wire_curve_bin(bin)
+        for line in curve.lines:
+            wire_curve_bin(line)
 
     def _wire_table(self, table):
         self._set_bin_variable(table.table_xbin, Array1dVariable)
