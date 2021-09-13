@@ -186,7 +186,7 @@ class ConstantsSection(DictSection[Page]):
 
 @dataclass(eq=False)
 class AxisBin:
-    constant_ref: str
+    variable: str
     outputchannel: Optional[str] = None
 
 
@@ -197,8 +197,8 @@ class Table:
     map3d_id: str
     title: str
     page_num: int
-    xbins: AxisBin
-    ybins: AxisBin
+    table_xbin: AxisBin
+    table_ybin: AxisBin
     zbins: AxisBin
     unknown_values: Optional[List[Any]] = None
     xy_labels: Optional[List[str]] = None
@@ -212,7 +212,7 @@ class Table:
         return self.table_id
 
 
-@dataclass(eq=False)
+@dataclass
 class Axis:
     min: int
     max: int
@@ -220,24 +220,63 @@ class Axis:
 
 
 @dataclass(eq=False)
+class CurveLine:
+    xbin: AxisBin
+    ybin: AxisBin
+    column_label: str
+    line_label: str
+    xaxis: Axis
+    yaxis: Axis
+
+
+@dataclass(eq=False)
 class Curve:
     # pylint: disable=too-many-instance-attributes
     curve_id: str
     name: str
-    column_labels: List[str]
-    xaxis_limits: Axis
-    xbins: AxisBin
-    yaxis_limits: Axis
-    ybins: AxisBin
+    lines: List[CurveLine] = field(default_factory=list, init=False)
+
+    xaxis_limits: InitVar[List[Axis]]
+    yaxis_limits: InitVar[List[Axis]]
+    xbins: InitVar[List[AxisBin]]
+    ybins: InitVar[List[AxisBin]]
+    column_labels: InitVar[Optional[List[str]]] = None
+    line_label: InitVar[Optional[List[str]]] = None
+
     page_num: Optional[int] = None
     curve_dimensions: Optional[MatrixDimensions] = None
     curve_gauge: Optional[str] = None
-    line_label: Optional[List[str]] = None
     help_topic: Optional[str] = None
 
     @property
     def key(self):
         return self.curve_id
+
+    def __post_init__(self,
+                      xaxis_limits: List[Axis],
+                      yaxis_limits: List[Axis],
+                      xbins: List[AxisBin],
+                      ybins: List[AxisBin],
+                      column_labels: List[str],
+                      line_label: List[str]
+                      ):
+        # Normalize the incoming arrays to the length of ybins
+        count = len(ybins)
+        column_labels = column_labels[:count] if column_labels else []
+        column_labels = column_labels + [''] * (count - len(column_labels))
+        line_label = line_label[:count] if line_label else []
+        line_label = line_label + [''] * (count - len(line_label))
+        xbins = xbins + [xbins[-1]] * (count - len(xbins))
+        xaxis_limits = xaxis_limits + [xaxis_limits[-1]] * (count - len(xaxis_limits))
+        yaxis_limits = yaxis_limits + [yaxis_limits[-1]] * (count - len(yaxis_limits))
+
+        for composite in zip(xbins, ybins, column_labels, line_label, xaxis_limits, yaxis_limits):
+            self.lines.append(CurveLine(xbin=composite[0],
+                                        ybin=composite[1],
+                                        column_label=composite[2],
+                                        line_label=composite[3],
+                                        xaxis=composite[4],
+                                        yaxis=composite[5]))
 
 
 @dataclass(eq=False)
@@ -253,8 +292,8 @@ class TsIniFile(_DictBase[_SectionBase]):
             for table in self['TableEditor'].values():
                 self._wire_table(table)
         if 'CurveEditor' in self:
-            for table in self['CurveEditor'].values():
-                self._wire_curve(table)
+            for curve in self['CurveEditor'].values():
+                self._wire_curve(curve)
 
     def _find_constant_nothrow(self, name, expected_type):
         for page in self['Constants'].values():
@@ -278,21 +317,21 @@ class TsIniFile(_DictBase[_SectionBase]):
             raise KeyError(name)
         return constant
 
-    def _set_bin_constant(self, bin_field: AxisBin, var_type: type):
-        bin_field.constant_ref = self._find_named_variable(bin_field.constant_ref, var_type)  # noqa: E501
+    def _set_bin_variable(self, bin_field: AxisBin, var_type: type):
+        if isinstance(bin_field.variable, str):
+            bin_field.variable = self._find_named_variable(bin_field.variable, var_type)  # noqa: E501
+        # TODO
+        # Wire in output channel (once the OutputChannels section is properly parsed)
 
-    def _wire_curve(self, curve):
-        def wire_curve_bins(bins):
-            if isinstance(bins, list):
-                for bin in bins:
-                    self._set_bin_constant(bin, Array1dVariable)
-            else:
-                self._set_bin_constant(bins, Array1dVariable)
+    def _wire_curve(self, curve: Curve):
+        def wire_curve_bin(bin: CurveLine):
+            self._set_bin_variable(bin.xbin, Array1dVariable)
+            self._set_bin_variable(bin.ybin, Array1dVariable)
 
-        wire_curve_bins(curve.xbins)
-        wire_curve_bins(curve.ybins)
+        for bin in curve.lines:
+            wire_curve_bin(bin)
 
     def _wire_table(self, table):
-        self._set_bin_constant(table.xbins, Array1dVariable)
-        self._set_bin_constant(table.ybins, Array1dVariable)
-        self._set_bin_constant(table.zbins, Array2dVariable)
+        self._set_bin_variable(table.table_xbin, Array1dVariable)
+        self._set_bin_variable(table.table_ybin, Array1dVariable)
+        self._set_bin_variable(table.zbins, Array2dVariable)

@@ -65,8 +65,6 @@ class DataClassTransformer(Transformer):
         'zbins',
         'curve_id',
         'curve_name',
-        'xaxis_limits',
-        'yaxis_limits',
         'line_label',
         'min',
         'max',
@@ -82,10 +80,10 @@ class DataClassTransformer(Transformer):
         'dim1d',
         'type_name',
         'symbol',
-        'xbins',
-        'ybins',
+        'table_xbin',
+        'table_ybin',
         'help_topic',
-        'constant_ref',
+        'variable',
         'outputchannel',
         'unknown',
         'inline_expression',
@@ -150,7 +148,8 @@ class DataClassTransformer(Transformer):
                 if key in dup_map:
                     if not isinstance(dup_map[key], list):
                         dup_map[key] = [dup_map[key]]
-                    dup_map[key].append(value)
+                    for item in value:
+                        dup_map[key].append(item)
                 else:
                     dup_map[key] = value
             return dup_map

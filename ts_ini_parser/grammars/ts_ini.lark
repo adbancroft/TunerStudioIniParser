@@ -61,12 +61,14 @@ tableeditor_section : "[" tableeditor_section_name "]" _EOL tables
 				map3d_id          : _identifier 
 				title             : _string_literal 
 
-			_table_line       : hashdef_line | grid_height | grid_orient | zbins | xbins | ybins | help_topic | xy_labels | updown_labels
+			_table_line       : hashdef_line | grid_height | grid_orient | zbins | table_xbin | table_ybin | help_topic | xy_labels | updown_labels
 			grid_height       : "gridHeight"i "=" NUMBER _EOL 
 			grid_orient       : "gridOrient"i "=" NUMBER "," NUMBER "," NUMBER _EOL
 			xy_labels         : "xyLabels" "=" _label_list _EOL
 			updown_labels     : "upDownLabel" "=" _label_list _EOL
 			zbins             : "zbins"i "=" axis_bin _EOL 
+			table_xbin		  : _xbins
+			table_ybin		  : _ybins
 
 // Curve section can be grouped into curves & their properties
 curveeditor_section : "[" curveeditor_section_name "]" _EOL  curves
@@ -172,14 +174,16 @@ message_format_line: "messageEnvelopeFormat" "=" ANY_VALUE _EOL
 generic_gauge_line: _GAUGE_TAG _identifier ("," unknown_values)? _EOL
 	_GAUGE_TAG: "gauge"i WS_INLINE? "="
 
-xbins       : "xBins"i "=" axis_bin _EOL 
-ybins       : "yBins"i "=" axis_bin _EOL 
+xbins       : _xbins
+_xbins      : "xBins"i "=" axis_bin _EOL 
+ybins       : _ybins
+_ybins      : "yBins"i "=" axis_bin _EOL 
 help_topic  : "topicHelp"i "=" (string_literal | identifier) _EOL 
 
 // ============================ Line Components  ============================
 
-axis_bin    : constant_ref ("," outputchannel ("," "readonly"i)?)? 
-	constant_ref : _identifier 
+axis_bin    : variable ("," outputchannel ("," "readonly"i)?)? 
+	variable     : _identifier 
 	outputchannel: _identifier 
 	
 _field_list : (_field_list ",")? _field?
