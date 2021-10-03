@@ -95,7 +95,6 @@ class DataClassTransformer(Transformer):
         'number_field',
         'page_num',
         'name',
-        'variable_ref',
         'start_bit',
         'bit_length',
         'xsize',
@@ -165,6 +164,17 @@ class DataClassTransformer(Transformer):
 
     _var_tag = 'variable_ref'
 
+    def variable_ref(self, children):
+        if children[0] not in self._symbols:
+            # Reference to non-existent variable.
+            # Handle as if the variable ref never happened
+            #
+            # Equivalent of:
+            #   #undef BREAD
+            #   toast(BREAD)
+            raise Discard
+        return (self._var_tag, children[0])
+
     def _transform_children(self, children):
         """We always inline variable references - they need to appear in the original
         position of the variable reference, not as a nested item
@@ -178,8 +188,12 @@ class DataClassTransformer(Transformer):
 
             for child in children:
                 if is_variable_ref(child):
-                    if child[1] in self._symbols:
-                        yield from self._symbols[child[1]]
+                    # Need to use yield from in case the variable contains multiple
+                    # entries. We don't want a list in place of the variable, we want
+                    # the list items inline. E.g.
+                    #   #define BREAD_LIKE ciabatta, bagel
+                    #   toast(BREAD_LIKE)
+                    yield from self._symbols[child[1]]
                 else:
                     yield child
 
