@@ -9,6 +9,11 @@ try:
 except:
     from .test_utils import parse_file, get_test_ini_path
 
+from lark import logger
+from logging import DEBUG, StreamHandler, getLogger
+
+logger.setLevel(DEBUG)
+
 
 class test_dataclasstransformer(unittest.TestCase):
 
@@ -69,12 +74,12 @@ class test_dataclasstransformer(unittest.TestCase):
 
         curve = section['idle_advance_curve']
         self.assertIsInstance(curve, Curve)
-        self.assertSequenceEqual(curve.column_labels, ['RPM Delta', 'Advance'])
+        self.assertSequenceEqual(curve.lines[0].column_label, 'RPM Delta')
         self.assertEqual(curve.curve_dimensions.xsize, 450)
         self.assertEqual(curve.curve_dimensions.ysize, 200)
 
         self.assertEqual(section['warmup_curve'].curve_gauge, 'cltGauge')
-        self.assertSequenceEqual(section['warmup_analyzer_curve'].line_label, ['Current WUE', 'Recommended WUE'])
+        self.assertSequenceEqual(section['warmup_analyzer_curve'].lines[0].line_label, 'Current WUE')
 
     def test_variablerefs_replacedinline(self):
         self.assertEqual(len(self.subject['PcVariables']['algorithmNames'].unknown_values), 8)
@@ -82,13 +87,13 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertIsInstance(self.subject['Constants'][9]['caninput_sel0a'].unknown_values[4][1], Array1dVariable)
 
     def test_interline_references(self):
-        self.assertIs(self.subject['Constants'][7]['rpmBinsBoost'], self.subject['TableEditor']['boostTbl'].xbins.constant_ref)
-        self.assertEqual(self.subject['TableEditor']['boostTbl'].xbins.constant_ref.size, 8)
-        self.assertIs(self.subject['Constants'][7]['tpsBinsBoost'], self.subject['TableEditor']['boostTbl'].ybins.constant_ref)
-        self.assertIs(self.subject['Constants'][7]['boostTable'], self.subject['TableEditor']['boostTbl'].zbins.constant_ref)
+        self.assertIs(self.subject['Constants'][7]['rpmBinsBoost'], self.subject['TableEditor']['boostTbl'].table_xbin.variable)
+        self.assertEqual(self.subject['TableEditor']['boostTbl'].table_ybin.variable.size, 8)
+        self.assertIs(self.subject['Constants'][7]['tpsBinsBoost'], self.subject['TableEditor']['boostTbl'].table_ybin.variable)
+        self.assertIs(self.subject['Constants'][7]['boostTable'], self.subject['TableEditor']['boostTbl'].zbins.variable)
 
-        self.assertIs(self.subject['Constants'][4]['taeBins'], self.subject['CurveEditor']['time_accel_tpsdot_curve'].xbins.constant_ref)
-        self.assertIs(self.subject['PcVariables']['wueAFR'], self.subject['CurveEditor']['warmup_afr_curve'].ybins.constant_ref)
+        self.assertIs(self.subject['Constants'][4]['taeBins'], self.subject['CurveEditor']['time_accel_tpsdot_curve'].lines[0].xbin.variable)
+        self.assertIs(self.subject['PcVariables']['wueAFR'], self.subject['CurveEditor']['warmup_afr_curve'].lines[0].ybin.variable)
 
     def test_datatype(self):
         data_type = self.subject['Constants'][1]['aseTaperTime'].data_type
@@ -102,6 +107,42 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertEqual(self.subject['Constants'][2]['veTable'].size, 256)
         self.assertEqual(self.subject['Constants'][1]['vssPulsesPerKm'].size, 2)
         self.assertEqual(self.subject['Constants'][1]['vssMode'].size, 1)
+
+    @unittest.skip("Not sure about always running this yet - it's slow")
+    def test_all_ini(self):
+        # Test all known INI files
+        parser = TsIniParser(ignore_hash_error=True)
+        parser.define('LAMBDA', True)
+        parser.define('ALPHA_N', True)
+        parser.define('INI_VERSION_2', True)
+        parser.define('NARROW_BAND_EGO', True)
+
+        test_file_folder = get_test_ini_path('Test_Files')
+        ini_files = test_file_folder.glob("*.ini")
+
+        log = getLogger(self.__class__.__name__)
+        log.addHandler(StreamHandler())
+        log.setLevel(DEBUG)
+
+        # Files we can't transform....yet
+        exclude_ini = [
+            'MS2ExtraSerial321.ini',
+            'MS2ExtraSerial323.ini',
+            'MS2ExtraSerial324.ini',
+            'MS2ExtraSerial325.ini',
+        ]
+
+        for ini_file in ini_files:
+            if ini_file.name not in exclude_ini:
+                log.info(f"Parsing {ini_file}")
+                try:
+                    tree = parse_file(ini_file, parser)
+                    self.assertIsNotNone(tree)
+                    dataclass = DataClassTransformer().transform(tree)
+                    self.assertIsNotNone(dataclass)
+                except Exception as error:
+                    msg = f'{ini_file} failed with {str(error)}'
+                    self.fail(msg)
 
 
 if __name__ == '__main__':

@@ -40,6 +40,10 @@ class KeyValuePair():
     name: str
     values: list
 
+    @property
+    def key(self):
+        return self.name
+
 
 @dataclass(eq=False)
 class Variable:
@@ -158,6 +162,7 @@ class Array2dVariable(_ScalarCore, _Array2dCore):
 class StringVariable(Variable):
     length: int
     encoding: str
+    offset: Optional[int] = None
     unknown_values: Optional[List[Any]] = None
 
     @property
@@ -181,9 +186,8 @@ class ConstantsSection(DictSection[Page]):
 
 @dataclass(eq=False)
 class AxisBin:
-    constant_ref: str
+    variable: str
     outputchannel: Optional[str] = None
-    unknown: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -193,8 +197,8 @@ class Table:
     map3d_id: str
     title: str
     page_num: int
-    xbins: AxisBin
-    ybins: AxisBin
+    table_xbin: AxisBin
+    table_ybin: AxisBin
     zbins: AxisBin
     unknown_values: Optional[List[Any]] = None
     xy_labels: Optional[List[str]] = None
@@ -208,7 +212,7 @@ class Table:
         return self.table_id
 
 
-@dataclass(eq=False)
+@dataclass
 class Axis:
     min: int
     max: int
@@ -216,22 +220,63 @@ class Axis:
 
 
 @dataclass(eq=False)
+class CurveLine:
+    xbin: AxisBin
+    ybin: AxisBin
+    column_label: str
+    line_label: str
+    xaxis: Axis
+    yaxis: Axis
+
+
+@dataclass(eq=False)
 class Curve:
     # pylint: disable=too-many-instance-attributes
     curve_id: str
     name: str
-    column_labels: List[str]
-    xaxis_limits: Axis
-    xbins: AxisBin
-    yaxis_limits: Axis
-    ybins: AxisBin
+    lines: List[CurveLine] = field(default_factory=list, init=False)
+
+    xaxis_limits: InitVar[List[Axis]]
+    yaxis_limits: InitVar[List[Axis]]
+    xbins: InitVar[List[AxisBin]]
+    ybins: InitVar[List[AxisBin]]
+    column_labels: InitVar[Optional[List[str]]] = None
+    line_label: InitVar[Optional[List[str]]] = None
+
+    page_num: Optional[int] = None
     curve_dimensions: Optional[MatrixDimensions] = None
     curve_gauge: Optional[str] = None
-    line_label: Optional[List[str]] = None
+    help_topic: Optional[str] = None
 
     @property
     def key(self):
         return self.curve_id
+
+    def __post_init__(self,
+                      xaxis_limits: List[Axis],
+                      yaxis_limits: List[Axis],
+                      xbins: List[AxisBin],
+                      ybins: List[AxisBin],
+                      column_labels: List[str],
+                      line_label: List[str]):
+        # pylint: disable=too-many-arguments
+        # Normalize the incoming arrays to the length of ybins
+        count = len(ybins)
+        column_labels = column_labels[:count] if column_labels else []
+        column_labels = column_labels + [''] * (count - len(column_labels))
+        line_label = line_label[:count] if line_label else []
+        line_label = line_label + [''] * (count - len(line_label))
+        xbins = xbins + [xbins[-1]] * (count - len(xbins))
+        xaxis_limits = xaxis_limits + [xaxis_limits[-1]] * (count - len(xaxis_limits))
+        yaxis_limits = yaxis_limits + [yaxis_limits[-1]] * (count - len(yaxis_limits))
+
+        for composite in zip(xbins, ybins, column_labels, line_label, xaxis_limits, yaxis_limits):
+            self.lines.append(CurveLine(xbin=composite[0],
+                                        ybin=composite[1],
+                                        column_label=composite[2],
+                                        line_label=composite[3],
+                                        xaxis=composite[4],
+                                        yaxis=composite[5]))
 
 
 @dataclass(eq=False)
@@ -243,20 +288,12 @@ class TsIniFile(_DictBase[_SectionBase]):
         self._wire_constants()
 
     def _wire_constants(self):
-        for table in self['TableEditor'].values():
-            self._wire_table(table)
-        for table in self['CurveEditor'].values():
-            self._wire_curve(table)
-
-    def _wire_table(self, table):
-        def set_bin_constant(bin_field, page):
-            bin_field.constant_ref = page[bin_field.constant_ref]
-
-        page = self['Constants'][table.page_num]
-
-        set_bin_constant(table.xbins, page)
-        set_bin_constant(table.ybins, page)
-        set_bin_constant(table.zbins, page)
+        if 'TableEditor' in self:
+            for table in self['TableEditor'].values():
+                self._wire_table(table)
+        if 'CurveEditor' in self:
+            for curve in self['CurveEditor'].values():
+                self._wire_curve(curve)
 
     def _find_constant_nothrow(self, name, expected_type):
         for page in self['Constants'].values():
@@ -265,15 +302,11 @@ class TsIniFile(_DictBase[_SectionBase]):
                 return constant
         return None
 
-    def _find_constant(self, name, expected_type):
-        constant = self._find_constant_nothrow(name, expected_type)
-        if not constant:
-            raise KeyError(name)
-        return constant
-
     def _find_pcvariable_nothrow(self, name, expected_type):
-        variable = self['PcVariables'].get(name)
-        return variable if isinstance(variable, expected_type) else None
+        if 'PcVariables' in self:
+            variable = self['PcVariables'].get(name)
+            return variable if isinstance(variable, expected_type) else None
+        return None
 
     def _find_named_variable_nothrow(self, name, expected_type):
         constant = self._find_constant_nothrow(name, expected_type)
@@ -285,13 +318,21 @@ class TsIniFile(_DictBase[_SectionBase]):
             raise KeyError(name)
         return constant
 
-    def _wire_curve(self, curve):
-        def set_bin_constant(bin_field):
-            bin_field.constant_ref = self._find_named_variable(bin_field.constant_ref, Array1dVariable)  # noqa: E501
+    def _set_bin_variable(self, bin_field: AxisBin, var_type: type):
+        if isinstance(bin_field.variable, str):
+            bin_field.variable = self._find_named_variable(bin_field.variable, var_type)  # noqa: E501
+        # TODO
+        # Wire in output channel (once the OutputChannels section is properly parsed)
 
-        set_bin_constant(curve.xbins)
-        if isinstance(curve.ybins, list):
-            for ybin in curve.ybins:
-                set_bin_constant(ybin)
-        else:
-            set_bin_constant(curve.ybins)
+    def _wire_curve(self, curve: Curve):
+        def wire_curve_bin(line: CurveLine):
+            self._set_bin_variable(line.xbin, Array1dVariable)
+            self._set_bin_variable(line.ybin, Array1dVariable)
+
+        for line in curve.lines:
+            wire_curve_bin(line)
+
+    def _wire_table(self, table):
+        self._set_bin_variable(table.table_xbin, Array1dVariable)
+        self._set_bin_variable(table.table_ybin, Array1dVariable)
+        self._set_bin_variable(table.zbins, Array2dVariable)
