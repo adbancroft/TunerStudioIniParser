@@ -13,5 +13,6 @@ __pycache__/
 
 *.dat
 *.svg
+*.prof
 
 .venv
