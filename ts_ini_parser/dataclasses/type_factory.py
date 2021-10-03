@@ -2,11 +2,17 @@ from typing import Dict, Any
 from . import ts_ini_file
 
 
+def kvp_array_line_factory(**kwargs: Dict[str, Any]):
+    if 'dim1d' in kwargs:
+        return ts_ini_file.Array1dVariable(**kwargs)
+    return ts_ini_file.Array2dVariable(**kwargs)
+
+
 # Type tag to type mapping
 _RULE_TYPEMAP = {
         'kvp_bits_line': ts_ini_file.BitVariable,
         'kvp_scalar_line': ts_ini_file.ScalarVariable,
-        'kvp_array_line': ts_ini_file.Array1dVariable,
+        'kvp_array_line': kvp_array_line_factory,
         'kvp_string_line': ts_ini_file.StringVariable,
         'kvp_line': ts_ini_file.KeyValuePair,
         'page': ts_ini_file.Page,
@@ -32,12 +38,4 @@ def dataclass_factory(type_tag: str, dict_data: Dict[str, Any]):
     """ A factory that converts a type marker and dictionary into
     a class instance"""
 
-    if type_tag == 'kvp_array_line':
-        if 'dim1d' in dict_data:
-            class_type = ts_ini_file.Array1dVariable
-        else:
-            class_type = ts_ini_file.Array2dVariable
-    else:
-        class_type = _RULE_TYPEMAP[type_tag]
-
-    return class_type(**dict_data)
+    return _RULE_TYPEMAP[type_tag](**dict_data)
