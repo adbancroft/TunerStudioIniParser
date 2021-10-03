@@ -1,5 +1,5 @@
 
-from lark.visitors import Transformer, Discard
+from lark.visitors import Transformer, Discard, v_args
 from .type_factory import dataclass_factory
 
 
@@ -22,119 +22,109 @@ class DataClassTransformer(Transformer):
     # Lot's of rules need the same transform, so drive the processing by
     # look up.
 
-    _dict_from_child_types = [
-        'sections',
-        'pages',
-        'page_lines',
-        'variables',
-        'tables',
-        'curves',
-    ]
+    def dict_from_child_types(self, children):
+        return ('dict_data', [(i.key, i) for i in children])
 
-    _convert_to_type = [
-        'start',
-        'context_help_section',
-        'constants_section',
-        'page',
-        'pcvariables_section',
-        'tableeditor_section',
-        'table',
-        'curveeditor_section',
-        'axis_limits',
-        'generic_section',
-        'kvp_line',
-        'kvp_scalar_line',
-        'kvp_bits_line',
-        'kvp_array_line',
-        'kvp_string_line',
-        'axis_bin',
-        'curve',
-    ]
+    sections = dict_from_child_types
+    pages = dict_from_child_types
+    page_lines = dict_from_child_types
+    variables = dict_from_child_types
+    tables = dict_from_child_types
+    curves = dict_from_child_types
 
-    _to_tuple_and_type = [
-        'bit_size',
-        'dim2d',
-        'curve_dimensions'
-    ]
+    @v_args(tree=True)
+    def convert_to_type(self, tree):
+        return self._to_type(tree.data, tree.children)
 
-    _hoist_only_child = [
-        'table_id',
-        'map3d_id',
-        'title',
-        'grid_height',
-        'zbins',
-        'curve_id',
-        'curve_name',
-        'line_label',
-        'min',
-        'max',
-        'step',
-        'label',
-        'units',
-        'scale',
-        'translate',
-        'low',
-        'high',
-        'digits',
-        'offset',
-        'dim1d',
-        'type_name',
-        'symbol',
-        'table_xbin',
-        'table_ybin',
-        'help_topic',
-        'variable',
-        'outputchannel',
-        'unknown',
-        'inline_expression',
-        'code_override',
-        'name_override',
-        'type_kvp',
-        'filter_field',
-        'type_other',
-        'number_field',
-        'page_num',
-        'name',
-        'start_bit',
-        'bit_length',
-        'xsize',
-        'ysize',
-        'curve_gauge'
-    ]
+    start = convert_to_type
+    context_help_section = convert_to_type
+    constants_section = convert_to_type
+    page = convert_to_type
+    pcvariables_section = convert_to_type
+    tableeditor_section = convert_to_type
+    table = convert_to_type
+    curveeditor_section = convert_to_type
+    axis_limits = convert_to_type
+    generic_section = convert_to_type
+    kvp_line = convert_to_type
+    kvp_scalar_line = convert_to_type
+    kvp_bits_line = convert_to_type
+    kvp_array_line = convert_to_type
+    kvp_string_line = convert_to_type
+    axis_bin = convert_to_type
+    curve = convert_to_type
 
-    _to_child = [
-        'string_literal',
-    ]
+    @v_args(tree=True)
+    def to_tuple_and_type(self, tree):
+        return (tree.data, self._to_type(tree.data, tree.children))
 
-    _to_children = [
-        'help_line',
-    ]
+    bit_size = to_tuple_and_type
+    dim2d = to_tuple_and_type
+    curve_dimensions = to_tuple_and_type
+
+    @v_args(tree=True)
+    def hoist_only_child(self, tree):
+        if len(tree.children) > 1:
+            raise ValueError()
+        return (tree.data, tree.children[0] if tree.children else None)
+
+    table_id = hoist_only_child
+    map3d_id = hoist_only_child
+    title = hoist_only_child
+    grid_height = hoist_only_child
+    zbins = hoist_only_child
+    curve_id = hoist_only_child
+    curve_name = hoist_only_child
+    line_label = hoist_only_child
+    min = hoist_only_child
+    max = hoist_only_child
+    step = hoist_only_child
+    label = hoist_only_child
+    units = hoist_only_child
+    scale = hoist_only_child
+    translate = hoist_only_child
+    low = hoist_only_child
+    high = hoist_only_child
+    digits = hoist_only_child
+    offset = hoist_only_child
+    dim1d = hoist_only_child
+    type_name = hoist_only_child
+    symbol = hoist_only_child
+    table_xbin = hoist_only_child
+    table_ybin = hoist_only_child
+    help_topic = hoist_only_child
+    variable = hoist_only_child
+    outputchannel = hoist_only_child
+    unknown = hoist_only_child
+    inline_expression = hoist_only_child
+    code_override = hoist_only_child
+    name_override = hoist_only_child
+    type_kvp = hoist_only_child
+    filter_field = hoist_only_child
+    type_other = hoist_only_child
+    number_field = hoist_only_child
+    page_num = hoist_only_child
+    name = hoist_only_child
+    start_bit = hoist_only_child
+    bit_length = hoist_only_child
+    xsize = hoist_only_child
+    ysize = hoist_only_child
+    curve_gauge = hoist_only_child
+
+    def to_child(self, children):
+        if len(children) != 1:
+            raise ValueError()
+        return children[0]
+
+    string_literal = to_child
+
+    def to_children(self, children):
+        return children
+
+    help_line = to_children
 
     # Applies to all rules not explicitly processed
     def __default__(self, data, children, meta):
-        # pylint: disable=too-many-return-statements
-        if data in self._dict_from_child_types:
-            return ('dict_data', [(i.key, i) for i in children])
-
-        if data in self._convert_to_type:
-            return self._to_type(data, children)
-
-        if data in self._hoist_only_child:
-            if len(children) > 1:
-                raise ValueError()
-            return (data, children[0] if children else None)
-
-        if data in self._to_tuple_and_type:
-            return (data, self._to_type(data, children))
-
-        if data in self._to_child:
-            if len(children) != 1:
-                raise ValueError()
-            return children[0]
-
-        if data in self._to_children:
-            return children
-
         # Default rule action is to transform to a tuple
         #
         # These will typically go on to be dictionary entries
