@@ -131,19 +131,7 @@ class DataClassTransformer(Transformer):
         return (data, children)
 
     def _to_type(self, data, children):
-        def collapse_dups(children):
-            dup_map = {}
-            for key, value in children:
-                if key in dup_map:
-                    if not isinstance(dup_map[key], list):
-                        dup_map[key] = [dup_map[key]]
-                    for item in value:
-                        dup_map[key].append(item)
-                else:
-                    dup_map[key] = value
-            return dup_map
-
-        return self._factory(data, collapse_dups(children))
+        return self._factory(data, children)
 
     # ================== #define, $symbol handling =====================
 
