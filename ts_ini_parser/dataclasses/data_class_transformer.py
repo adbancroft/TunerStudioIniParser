@@ -22,7 +22,8 @@ class DataClassTransformer(Transformer):
     # Lot's of rules need the same transform, so drive the processing by
     # look up.
 
-    def dict_from_child_types(self, children):
+    @staticmethod
+    def dict_from_child_types(children):
         return ('dict_data', [(i.key, i) for i in children])
 
     sections = dict_from_child_types
@@ -62,8 +63,9 @@ class DataClassTransformer(Transformer):
     dim2d = to_tuple_and_type
     curve_dimensions = to_tuple_and_type
 
+    @staticmethod
     @v_args(tree=True)
-    def hoist_only_child(self, tree):
+    def hoist_only_child(tree):
         if len(tree.children) > 1:
             raise ValueError()
         return (tree.data, tree.children[0] if tree.children else None)
@@ -111,14 +113,16 @@ class DataClassTransformer(Transformer):
     ysize = hoist_only_child
     curve_gauge = hoist_only_child
 
-    def to_child(self, children):
+    @staticmethod
+    def to_child(children):
         if len(children) != 1:
             raise ValueError()
         return children[0]
 
     string_literal = to_child
 
-    def to_children(self, children):
+    @staticmethod
+    def to_children(children):
         return children
 
     help_line = to_children

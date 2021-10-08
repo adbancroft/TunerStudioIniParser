@@ -9,7 +9,7 @@ def kvp_array_line_factory(children):
     return ts_ini_file.Array2dVariable(**children)
 
 
-def dedup_factory(type, children):
+def dedup_factory(new_type, children):
     def _collapse_dups(children):
         dup_map = {}
         for key, value in children:
@@ -23,11 +23,11 @@ def dedup_factory(type, children):
         return dup_map
 
     children = _collapse_dups(children)
-    return type(**children)
+    return new_type(**children)
 
 
-def generic_factory(type, children):
-    return type(**dict(children))
+def generic_factory(new_type, children):
+    return new_type(**dict(children))
 
 
 # Type tag to type mapping
