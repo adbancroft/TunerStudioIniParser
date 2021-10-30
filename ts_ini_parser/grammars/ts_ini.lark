@@ -200,8 +200,9 @@ _label_list   : (_label_list ",")? string_literal
 variable_ref      : "$" CNAME
 inline_expression : "{" INLINE_EXPRESSION? "}" 
 	INLINE_EXPRESSION : /[^}\n]+/
-code_override     : "%code_override"i "=" (name_override | variable_ref) 
+code_override     : "%code_override"i "=" (name_override | variable_ref | unused) 
 	name_override     : _NAME_TAG NAME_OVERRIDE 
+	unused            : "unused"i
 	NAME_OVERRIDE     :  /[^,\n]+/
 	_NAME_TAG         : "name"i WS_INLINE? "="
 type_kvp          : TYPE_KVP 
