@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='TsIniParser',
-      version='0.5',
+      version='0.6',
       description='A parser for TunerStudio INI files',
       url='https://github.com/adbancroft/TunerStudioIniParser',
       author='adbancroft',
