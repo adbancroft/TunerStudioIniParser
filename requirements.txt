@@ -1,1 +1,1 @@
-lark-parser==0.12.0
+lark==1.0.0

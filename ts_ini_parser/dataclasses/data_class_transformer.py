@@ -142,7 +142,7 @@ class DataClassTransformer(Transformer):
     def hashdef_line(self, children):
         # Record a symbol - will over write any previous definition
         self._symbols[children[0][1]] = children[1:]
-        raise Discard
+        return Discard
 
     _var_tag = 'variable_ref'
 
@@ -154,7 +154,7 @@ class DataClassTransformer(Transformer):
             # Equivalent of:
             #   #undef BREAD
             #   toast(BREAD)
-            raise Discard
+            return Discard
         return (self._var_tag, children[0])
 
     def _transform_children(self, children):
