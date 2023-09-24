@@ -28,6 +28,7 @@ class DataClassTransformer(Transformer):
 
     sections = dict_from_child_types
     pages = dict_from_child_types
+    outputchannels = dict_from_child_types
     page_lines = dict_from_child_types
     variables = dict_from_child_types
     tables = dict_from_child_types
@@ -49,11 +50,14 @@ class DataClassTransformer(Transformer):
     generic_section = convert_to_type
     kvp_line = convert_to_type
     kvp_scalar_line = convert_to_type
+    kvp_page_scalar_line = convert_to_type
     kvp_bits_line = convert_to_type
     kvp_array_line = convert_to_type
+    kvp_page_array_line = convert_to_type
     kvp_string_line = convert_to_type
     axis_bin = convert_to_type
     curve = convert_to_type
+    outputchannels_section = convert_to_type
 
     @v_args(tree=True)
     def to_tuple_and_type(self, tree):
@@ -96,7 +100,7 @@ class DataClassTransformer(Transformer):
     table_ybin = hoist_only_child
     help_topic = hoist_only_child
     variable = hoist_only_child
-    outputchannel = hoist_only_child
+    outputchannel_ref = hoist_only_child
     unknown = hoist_only_child
     inline_expression = hoist_only_child
     code_override = hoist_only_child
@@ -126,6 +130,7 @@ class DataClassTransformer(Transformer):
         return children
 
     help_line = to_children
+    channel_line = to_children
 
     # Applies to all rules not explicitly processed
     def __default__(self, data, children, meta):

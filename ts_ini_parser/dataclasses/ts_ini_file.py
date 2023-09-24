@@ -181,13 +181,18 @@ class Page(_DictBase[Variable]):
 
 @dataclass(eq=False)
 class ConstantsSection(DictSection[Page]):
-    header_lines: list
+    constant_header_lines: list
+
+
+@dataclass(eq=False)
+class OutputChannelsSection(DictSection[Variable]):
+    outputchannel_header_lines: list
 
 
 @dataclass(eq=False)
 class AxisBin:
     variable: str
-    outputchannel: Optional[str] = None
+    outputchannel_ref: Optional[str] = None
 
 
 @dataclass(eq=False)

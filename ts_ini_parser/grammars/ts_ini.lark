@@ -21,6 +21,7 @@ _section    : context_help_section
 				| tableeditor_section 
 				| pcvariables_section
 				| curveeditor_section
+				| outputchannels_section
 
 // ============================ Sections  ============================
 
@@ -35,14 +36,14 @@ context_help_section      : "[" context_help_section_name "]" _EOL context_help_
 		STRING_VALUE              : /\".*\"/
 
 // Entries in the Constants section can be grouped into pages 
-constants_section : "[" constants_section_name "]" _EOL header_lines pages
+constants_section : "[" constants_section_name "]" _EOL constant_header_lines pages
 	!constants_section_name: "Constants" -> name
-	header_lines           : (kvp_line | hashdef_line | message_format_line)*
+	constant_header_lines  : (kvp_line | hashdef_line | message_format_line)*
 	pages                  : page+
 		page       : _PAGE_TAG page_num _EOL page_lines
 		_PAGE_TAG  : "page"i WS_INLINE? "=" 
 		page_lines : _page_line+
-		_page_line :  kvp_scalar_line | kvp_bits_line | kvp_array_line | kvp_string_line | hashdef_line
+		_page_line :  kvp_page_scalar_line | kvp_bits_line | kvp_page_array_line | kvp_string_line | hashdef_line
 
 // Entries in here can form a unique dictionary
 pcvariables_section:  "[" pcvariables_section_name "]" _EOL variables
@@ -90,6 +91,13 @@ curve               : "curve"i "="  _curve_header _EOL _curve_line+
 			max          : (number_field | inline_expression | variable_ref) 
 			step         : (number_field | inline_expression | variable_ref) 
 
+outputchannels_section : "[" outputchannels_section_name "]" _EOL outputchannel_header_lines outputchannels
+	!outputchannels_section_name: "OutputChannels" -> name
+	outputchannel_header_lines: (kvp_line | hashdef_line | message_format_line)*
+	outputchannels                  : _channel_line+
+		// channel_lines : _channel_line+
+		_channel_line :  kvp_page_scalar_line | kvp_bits_line | kvp_page_array_line | kvp_string_line | hashdef_line | kvp_line
+
 // Any other section
 generic_section: "[" section_name "]" _EOL  lines
 lines:        _section_line*
@@ -106,7 +114,8 @@ kvp_line        : key_generic values _EOL
 	values      : _field_list
 	key_generic : KEY -> name
 
-kvp_scalar_line : kvp_scalar "," type_name ("," offset)? ("," _variable_parameters)? _EOL
+kvp_scalar_line      : kvp_scalar "," type_name ("," _variable_parameters)? _EOL
+kvp_page_scalar_line : kvp_scalar "," type_name "," offset ("," _variable_parameters)? _EOL
 kvp_scalar      : KVP_SCALAR_TAG -> name 
 KVP_SCALAR_TAG  : KEY WS_INLINE? "scalar"i
 
@@ -114,7 +123,8 @@ kvp_bits_line : kvp_bits "," type_name ("," offset)? "," bit_size ("," unknown_v
 kvp_bits      : KVP_BITS_TAG -> name
 KVP_BITS_TAG  : KEY WS_INLINE? "bits"i
 
-kvp_array_line : kvp_array "," type_name ("," offset)? "," (dim1d|dim2d) ("," _variable_parameters)? _EOL
+kvp_array_line      : kvp_array "," type_name "," (dim1d|dim2d) ("," _variable_parameters)? _EOL
+kvp_page_array_line : kvp_array "," type_name "," offset "," (dim1d|dim2d) ("," _variable_parameters)? _EOL
 kvp_array      : KVP_ARRAY_TAG -> name
 KVP_ARRAY_TAG  : KEY WS_INLINE? "array"i
 
@@ -139,7 +149,7 @@ KVP_STRING_TAG  : KEY WS_INLINE? "string"i
 	non_numeric_field_list : _non_numeric_field_list -> unknown_values
 	_non_numeric_field_list: string_literal ("," _field)*
 
-	offset     : INT 
+	offset     : (INT | inline_expression | variable_ref)
 	encoding   : _identifier
 	length     : INT
 
@@ -182,9 +192,9 @@ help_topic  : "topicHelp"i "=" (string_literal | identifier) _EOL
 
 // ============================ Line Components  ============================
 
-axis_bin    : variable ("," outputchannel ("," "readonly"i)?)? 
+axis_bin    : variable ("," outputchannel_ref ("," "readonly"i)?)? 
 	variable     : _identifier 
-	outputchannel: _identifier 
+	outputchannel_ref: _identifier 
 	
 _field_list : (_field_list ",")? _field?
 _field      :  inline_expression 

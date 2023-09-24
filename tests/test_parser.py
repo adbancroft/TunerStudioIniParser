@@ -38,8 +38,8 @@ class test_parser(unittest.TestCase):
 
         for ini_file in ini_files:
             try:
-                    log.info(f"Parsing {ini_file}")
-                    self.assertIsNotNone(parse_file(ini_file, parser))
+                log.info(f"Parsing {ini_file}")
+                self.assertIsNotNone(parse_file(ini_file, parser))
             except Exception as error:
                 self.fail(f"Failed {ini_file} with {str(error)}")
 

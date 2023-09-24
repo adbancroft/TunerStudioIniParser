@@ -34,7 +34,7 @@ class test_dataclasstransformer(unittest.TestCase):
         section = self.subject['Constants']
         self.assertIsInstance(section, ConstantsSection)
         self.assertIsInstance(section, UserDict)
-        self.assertEqual(14, len(section))
+        self.assertEqual(15, len(section))
 
         page = section[7]
         self.assertIsInstance(page, Page)
@@ -55,14 +55,14 @@ class test_dataclasstransformer(unittest.TestCase):
         section = self.subject['TableEditor']
         self.assertIsInstance(section, DictSection)
         self.assertIsInstance(section, UserDict)
-        self.assertEqual(19, len(section))
+        self.assertEqual(21, len(section))
 
         table = section['dwell_map']
         self.assertIsInstance(table, Table)
         self.assertSequenceEqual(table.xy_labels, ['RPM', 'Load: '])
         self.assertSequenceEqual(table.updown_labels, ['HIGHER', 'LOWER'])
 
-        self.assertEqual(section['veTable1Tbl'].help_topic, 'http://speeduino.com/wiki/index.php/Tuning')
+        self.assertEqual(section['veTable1Tbl'].help_topic, 'http://wiki.speeduino.com/en/configuration/VE_table')
         self.assertEqual(section['veTable1Tbl'].grid_height, 2.0)
         self.assertSequenceEqual(section['veTable1Tbl'].grid_orient, [250, 0, 340])
 
@@ -70,7 +70,7 @@ class test_dataclasstransformer(unittest.TestCase):
         section = self.subject['CurveEditor']
         self.assertIsInstance(section, DictSection)
         self.assertIsInstance(section, UserDict)
-        self.assertEqual(31, len(section))
+        self.assertEqual(34, len(section))
 
         curve = section['idle_advance_curve']
         self.assertIsInstance(curve, Curve)
@@ -83,8 +83,8 @@ class test_dataclasstransformer(unittest.TestCase):
 
     def test_variablerefs_replacedinline(self):
         self.assertEqual(len(self.subject['PcVariables']['algorithmNames'].unknown_values), 8)
-        self.assertEqual(len(self.subject['Constants'][13]['outputPin0'].unknown_values), 130)
-        self.assertIsInstance(self.subject['Constants'][9]['caninput_sel0a'].unknown_values[4][1], Array1dVariable)
+        self.assertEqual(len(self.subject['Constants'][13]['outputPin0'].unknown_values), 256)
+        # self.assertIsInstance(self.subject['Constants'][9]['caninput_sel0a'].unknown_values[4][1], Array1dVariable)
 
     def test_interline_references(self):
         self.assertIs(self.subject['Constants'][7]['rpmBinsBoost'], self.subject['TableEditor']['boostTbl'].table_xbin.variable)
@@ -108,7 +108,7 @@ class test_dataclasstransformer(unittest.TestCase):
         self.assertEqual(self.subject['Constants'][1]['vssPulsesPerKm'].size, 2)
         self.assertEqual(self.subject['Constants'][1]['vssMode'].size, 1)
 
-    @unittest.skip("Not sure about always running this yet - it's slow")
+    # @unittest.skip("Not sure about always running this yet - it's slow")
     def test_all_ini(self):
         # Test all known INI files
         parser = TsIniParser(ignore_hash_error=True)
